@@ -1,0 +1,16 @@
+{
+  "name": "cssg",
+  "version": "1.0.1",
+  "description": "cos sdk snippet generator",
+  "main": "index.js",
+  "author": "wjielai",
+  "license": "MIT",
+  "dependencies": {
+    "mustache": "^3.1.0",
+    "yargs": "^15.0.2"
+  },
+  "bin": {
+    "cssg": "./cli.js",
+    "cssg-helper": "./helper.js"
+  }
+}
