@@ -2,18 +2,23 @@ const util = require('./util')
 const path = require('path')
 
 const prettyCodeBlock = function (snippetBody, toIndentation) {
-  const reg = new RegExp("(\\s*)(.+)\\\r\\\n", 'g')
-  var matcher
+  const lines = snippetBody.split(/(?:\r\n|\r|\n)/g)
 
   let startIndentation = -1
   var newSnippetBody = []
-  while ((matcher = reg.exec(snippetBody)) != null) {
+  for (var i in lines) {
+    const codeLine = lines[i]
+    const matcher = codeLine.match('(\\s*)(.*)')
     const indentation = matcher[1].length
+    var newIndentation
     if (startIndentation < 0) {
       startIndentation = indentation
+      newIndentation = 0
+    } else {
+      newIndentation = Math.max(0, indentation - startIndentation) + toIndentation
     }
-    const newIndentation = indentation - startIndentation + toIndentation
-    const newLine = getIndentationString(newIndentation) + matcher[2] + '\r\n'
+    const newLine = getIndentationString(newIndentation) + matcher[2] + 
+      (i < lines.length - 1 ? '\r\n' : '')
     
     newSnippetBody.push(newLine)
   }

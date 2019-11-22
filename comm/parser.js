@@ -19,7 +19,8 @@ class Snippet {
   }
 
   finishBody() {
-    this.bodyBlock = this.innerBodyBlockArray.join('')
+    const s = this.innerBodyBlockArray.join('')
+    this.bodyBlock = s.substring(0, s.length - 2)
   }
 }
 

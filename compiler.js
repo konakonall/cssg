@@ -9,6 +9,8 @@ const isInitMethod = function (snippet) {
   return snippet.name.startsWith('global-init')
 }
 
+const templateIndentation = {}
+
 const genSnippet = function (snippet, macro, dynamicDefine, template, 
   ignoreExpression4Snippet, snippetsRoot) {
   let snippetContent = renderSnippetContent(snippet, macro, dynamicDefine, template)
@@ -30,10 +32,10 @@ const genTestCase = function (pipeline, macro, dynamicDefine, snippetTpl,
   const camelCaseName = getCamelCaseName(pipeline.name)
 
   // figure out code block indentation
-  var indentation = -1
-  const matcher = testcaseTpl.match("(\\s*){{2,3}snippet}{2,3}\\s*")
-  if (matcher) {
-    indentation = matcher[1].length
+  var indentation = templateIndentation[testcaseTpl]
+  if (!indentation) {
+    indentation = getSnippetIndentation(testcaseTpl)
+    templateIndentation[testcaseTpl] = indentation
   }
 
   const steps = []
@@ -49,11 +51,11 @@ const genTestCase = function (pipeline, macro, dynamicDefine, snippetTpl,
   var setupBlock, teardownBlock
   if (pipeline.setup) {
     setupBlock = renderSnippetContent(pipeline.setup, macro, dynamicDefine[pipeline.setup.name],
-      snippetTpl)
+      snippetTpl, indentation)
   }
   if (pipeline.teardown) {
     teardownBlock = renderSnippetContent(pipeline.teardown, macro, dynamicDefine[pipeline.teardown.name],
-      snippetTpl)
+      snippetTpl, indentation)
   }
 
   const testCaseContent = mustache.render(testcaseTpl, {
@@ -67,6 +69,17 @@ const genTestCase = function (pipeline, macro, dynamicDefine, snippetTpl,
   util.saveFile(testCaseFile, testCaseContent)
   
   console.log('generate test case :', testCaseFile)
+}
+
+function getSnippetIndentation(testcaseTpl) {
+  const lines = testcaseTpl.split(/(?:\r\n|\r|\n)/g)
+  for (const i in lines) {
+    const lineCode = lines[i]
+    const matcher = lineCode.match("(\\s*){{2,3}snippet}{2,3}\\s*")
+    if (matcher) {
+      return matcher[1].length
+    }
+  }
 }
 
 function renderSnippetContent(snippet, macro, dynamicDefine, snippetTpl, indentation) {
@@ -228,3 +241,7 @@ module.exports = {
 }
 
 compile(path.join(__dirname, '../cssg-cases/dotnet'))
+
+// const content = util.loadFileContent(path.join(__dirname, 
+//   '../cssg-cases/dotnet/snippets/abort-multi-upload.snippet'))
+// console.log(pretty.prettyCodeBlock(content, 0))
