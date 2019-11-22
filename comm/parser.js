@@ -7,6 +7,7 @@ class Snippet {
     this.name = name
     this.defineBlock = ''
     this.bodyBlock = ''
+    this.innerBodyBlockArray = []
   }
 
   appendDefine(newBlock) {
@@ -14,7 +15,11 @@ class Snippet {
   }
 
   appendBody(newBlock) {
-    this.bodyBlock = this.bodyBlock.concat(newBlock)
+    this.innerBodyBlockArray.push(newBlock)
+  }
+
+  finishBody() {
+    this.bodyBlock = this.innerBodyBlockArray.join('')
   }
 }
 
@@ -92,8 +97,11 @@ const parseSnippetBody = async function (source) {
 
       if (thisIsBodyBlockStart && !mIsBodyBlockStart) {
         const name = parseBlockStartTagWithArg(codeLine, 'body')
+        if (snippet) {
+          snippet.finishBody()
+          snippets.push(snippet)
+        }
         snippet = new Snippet(currentLang, name)
-        snippets.push(snippet)
       } else if ((thisIsBodyBlockStart && mIsBodyBlockStart) && !(mIsIgnoreBlockStart || thisIsIgnoreBlockStart)) {
         snippet.appendBody(codeLine + '\r\n')
       }
@@ -225,6 +233,7 @@ const parseDOC2Prototype = async function (doc) {
           return
         } else {
           isCodeBlockBackticksStart = false
+          currSnippet.bodyBlock = currSnippet.innerBodyBlockArray.join('')
           snippets.push(currSnippet)
           currSnippet = null
           currSnippetName = null

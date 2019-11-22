@@ -3,19 +3,21 @@ var path = require('path');
 var parser = require('./comm/parser');
 const mustache = require('mustache');
 const util = require('./comm/util');
+const pretty = require('./comm/pretty');
 
 const isInitMethod = function (snippet) {
   return snippet.name.startsWith('global-init')
 }
 
-const genSnippet = function (snippet, macro, dynamicDefine, template, snippetsRoot) {
-  const value = Object.assign({}, macro, dynamicDefine)
+const genSnippet = function (snippet, macro, dynamicDefine, template, 
+  ignoreExpression4Snippet, snippetsRoot) {
+  let snippetContent = renderSnippetContent(snippet, macro, dynamicDefine, template)
 
-  const snippetBody = mustache.render(snippet.bodyBlock, value)
-  const snippetContent = isInitMethod(snippet) ? snippetBody : mustache.render(template, 
-    Object.assign({
-      "bodyBlock": snippetBody
-    }, value))
+  // remote ignore expression in code block
+  for (const i in ignoreExpression4Snippet) {
+    const exp = ignoreExpression4Snippet[i]
+    snippetContent = snippetContent.replace(new RegExp(exp, 'g'), "")
+  }
 
   const snippetDoc = util.getSnippetFile(snippetsRoot, snippet.name)
   util.saveFile(snippetDoc, snippetContent)
@@ -23,20 +25,43 @@ const genSnippet = function (snippet, macro, dynamicDefine, template, snippetsRo
   console.log('generate snippet :', snippetDoc)
 }
 
-const genTestCase = function (snippet, macro, dynamicDefine, snippetTpl, testcaseTpl, ext, 
-  testCaseRoot) {
-  const camelCaseName = getCamelCaseName(snippet.name)
-  const value = Object.assign({}, macro, dynamicDefine)
+const genTestCase = function (pipeline, macro, dynamicDefine, snippetTpl, 
+  testcaseTpl, ext, testCaseRoot) {
+  const camelCaseName = getCamelCaseName(pipeline.name)
 
-  const snippetBody = mustache.render(snippet.bodyBlock, value)
-  const snippetContent = isInitMethod(snippet) ? snippetBody : mustache.render(snippetTpl, 
-    Object.assign({
-      "bodyBlock": snippetBody
-    }, value))
-  const testCaseContent = mustache.render(testcaseTpl, Object.assign({
+  // figure out code block indentation
+  var indentation = -1
+  const matcher = testcaseTpl.match("(\\s*){{2,3}snippet}{2,3}\\s*")
+  if (matcher) {
+    indentation = matcher[1].length
+  }
+
+  const steps = []
+  for (let i in pipeline.steps) {
+    const snippet = pipeline.steps[i]
+    const snippetContent = renderSnippetContent(snippet, macro, dynamicDefine[snippet.name], 
+      snippetTpl, indentation)
+    steps.push({
+      name: getCamelCaseName(snippet.name),
+      snippet: snippetContent
+    })
+  }
+  var setupBlock, teardownBlock
+  if (pipeline.setup) {
+    setupBlock = renderSnippetContent(pipeline.setup, macro, dynamicDefine[pipeline.setup.name],
+      snippetTpl)
+  }
+  if (pipeline.teardown) {
+    teardownBlock = renderSnippetContent(pipeline.teardown, macro, dynamicDefine[pipeline.teardown.name],
+      snippetTpl)
+  }
+
+  const testCaseContent = mustache.render(testcaseTpl, {
     "name": camelCaseName,
-    "snippet": snippetContent
-  }, value))
+    "steps": steps,
+    "setupBlock": setupBlock,
+    "teardownBlock": teardownBlock
+  })
 
   const testCaseFile = path.join(testCaseRoot, camelCaseName + ext)
   util.saveFile(testCaseFile, testCaseContent)
@@ -44,35 +69,18 @@ const genTestCase = function (snippet, macro, dynamicDefine, snippetTpl, testcas
   console.log('generate test case :', testCaseFile)
 }
 
-const genGroupTestCase = function (groupName, snippets, macro, dynamicDefine, snippetTpl, 
-  testcaseGroupTpl, ext, testCaseRoot) {
-  const camelCaseName = getCamelCaseName(groupName)
-  const value = Object.assign({}, macro, dynamicDefine)
-
-  const steps = []
-  for (let i in snippets) {
-    const snippet = snippets[i]
-    const value = Object.assign({}, macro, dynamicDefine[snippet.name] || {})
-    const snippetBody = mustache.render(snippet.bodyBlock, value)
-    const snippetContent = mustache.render(snippetTpl, 
-      Object.assign({
-        "bodyBlock": snippetBody
-      }, value))
-    steps.push({
-      name: getCamelCaseName(snippet.name),
-      snippet: snippetContent
-    })
+function renderSnippetContent(snippet, macro, dynamicDefine, snippetTpl, indentation) {
+  const value = Object.assign({}, macro, dynamicDefine || {})
+  var snippetBody = mustache.render(snippet.bodyBlock, value)
+  snippetBody = pretty.prettyCodeBlock(snippetBody, 0)
+  var snippetContent = isInitMethod(snippet) ? snippetBody : mustache.render(snippetTpl, 
+    Object.assign({
+      "bodyBlock": snippetBody
+    }, value))
+  if (indentation > 0) {
+    snippetContent = pretty.prettyCodeBlock(snippetContent, indentation)
   }
-
-  const testCaseContent = mustache.render(testcaseGroupTpl, Object.assign({
-    "name": camelCaseName,
-    "steps": steps
-  }, value))
-
-  const testCaseFile = path.join(testCaseRoot, camelCaseName + ext)
-  util.saveFile(testCaseFile, testCaseContent)
-  
-  console.log('generate test case :', testCaseFile)
+  return snippetContent
 }
 
 const getCamelCaseName = function (name) {
@@ -86,6 +94,7 @@ const getCamelCaseName = function (name) {
 }
 
 const compile = async function(projRoot) {
+  console.log('CSSG compile start:\r\n----------------- ')
   // load project config
   const config = util.loadEntryConfig(projRoot, 'cssg.json')
   // load global config
@@ -97,33 +106,28 @@ const compile = async function(projRoot) {
   const testCaseRoot = path.join(projRoot, 'dist')
 
   // source file extension
-  const extension = config['sourceExtension']
+  const extension = config.sourceExtension
   // Assembly source file root
-  const sourcesRoot = path.join(projRoot, config['sourcesRoot'])
+  const sourcesRoot = path.join(projRoot, config.sourcesRoot)
 
   // macro defines
-  const macro4doc = util.applyBaseConfig(config['macro4doc'], global.macro4doc)
-  const macro4test = util.applyBaseConfig(config['macro4test'], global.macro4test)
-  const dynamicDefine = config['dynamic'] || {}
+  const macro4doc = util.applyBaseConfig(config.macro4doc, global.macro4doc)
+  const macro4test = util.applyBaseConfig(config.macro4test, global.macro4test)
+  const dynamicDefine = config.dynamic || {}
 
   // template defines
-  var snippetTpl = path.join(projRoot, config['snippetTemplate'])
-  var testcaseTpl = path.join(projRoot, config['testcaseTemplate'])
-  var testcaseGroupTpl = path.join(projRoot, config['testcaseGroupTemplate'])
-  var testcaseTopClsTpl = null
+  var snippetTpl = path.join(projRoot, config.snippetTemplate)
+  var testcaseTpl = path.join(projRoot, config.testcaseTemplate)
+  const exclusiveTemplate = config.exclusiveTemplate || {}
 
   snippetTpl = util.loadFileContent(snippetTpl)
   testcaseTpl = util.loadFileContent(testcaseTpl)
-  testcaseGroupTpl = util.loadFileContent(testcaseGroupTpl)
 
   mustache.parse(snippetTpl)
   mustache.parse(testcaseTpl)
-  mustache.parse(testcaseGroupTpl)
-  if (config['testcaseTopClsTemplate']) {
-    testcaseTopClsTpl = path.join(projRoot, config['testcaseTopClsTemplate'])
-    testcaseTopClsTpl = util.loadFileContent(testcaseTopClsTpl)
-    mustache.parse(testcaseTopClsTpl)
-  }
+
+  // load ignore expression
+  const ignoreExpression4Snippet = config.ignoreExpressionInDoc || []
 
   // create destination dir if necessary
   if (!fs.existsSync(snippetsRoot)) {
@@ -146,55 +150,81 @@ const compile = async function(projRoot) {
   for (var i in snippets) {
     const snippet = snippets[i]
     if (snippet.name) {
-      const d = dynamicDefine[snippet.name] || {}
-      mustache.parse(snippet.bodyBlock)  
-      genSnippet(snippet, macro4doc, d, snippetTpl, snippetsRoot)
+      mustache.parse(snippet.bodyBlock)
+      genSnippet(snippet, macro4doc, dynamicDefine, snippetTpl, 
+        ignoreExpression4Snippet, snippetsRoot)
 
       snippetNameDic[snippet.name] = snippet
     }
   }
 
-  // generate group test case
+  // generate test case by group
   const groups = global.group
   const added = []
   for (var groupName in groups) {
     if (groups.hasOwnProperty(groupName)) {
       const group = groups[groupName]
+
+      const pipeline = {}
+      const steps = Array.isArray(group) ? group : group.steps
       const gs = []
-      for (var i in group) {
-        if (snippetNameDic.hasOwnProperty(group[i])) {
-          gs.push(snippetNameDic[group[i]])
-          added.push([group[i]])
+      for (var i in steps) {
+        if (snippetNameDic.hasOwnProperty(steps[i])) {
+          gs.push(snippetNameDic[steps[i]])
+          added.push([steps[i]])
+        }
+      }
+      pipeline.name = groupName
+      pipeline.steps = gs
+      if (!Array.isArray(group)) {
+        if (snippetNameDic.hasOwnProperty(group.setup)) {
+          pipeline.setup = snippetNameDic[group.setup]
+          added.push(group.setup)
+        }
+        if (snippetNameDic.hasOwnProperty(group.teardown)) {
+          pipeline.teardown = snippetNameDic[group.teardown]
+          added.push(group.teardown)
         }
       }
 
-      genGroupTestCase(groupName, gs, macro4test, dynamicDefine, snippetTpl, 
-        testcaseGroupTpl, extension, testCaseRoot)
+      var tpl = testcaseTpl
+      if (exclusiveTemplate[groupName]) {
+        tpl = path.join(projRoot, exclusiveTemplate[groupName])
+        tpl = util.loadFileContent(tpl)
+      }
+
+      genTestCase(pipeline, macro4test, dynamicDefine, snippetTpl, tpl, extension, 
+        testCaseRoot)
     }
   }
   for (var i in added) {
     delete snippetNameDic[added[i]]
   }
-  // generate single test case
+  // generate remain test case
   for (var name in snippetNameDic) {
     if (snippetNameDic.hasOwnProperty(name)) {
       const snippet = snippetNameDic[name]
-      const d = dynamicDefine[snippet.name] || {}
 
-      var caseTpl = testcaseTpl
-      if (snippet.name.endsWith('topcls') && testcaseTopClsTpl) {
-        caseTpl = testcaseTopClsTpl
+      var tpl = testcaseTpl
+      if (exclusiveTemplate[snippet.name]) {
+        tpl = path.join(projRoot, exclusiveTemplate[snippet.name])
+        tpl = util.loadFileContent(tpl)
       }
-      genTestCase(snippet, macro4test, d, snippetTpl, caseTpl, extension, 
+      const pipeline = {
+        "steps": [snippet],
+        "name": snippet.name 
+      }
+      genTestCase(pipeline, macro4test, dynamicDefine, snippetTpl, tpl, extension, 
         testCaseRoot)
     }
   }
+
+  console.log('----------------- \r\nCSSG compile end.')
+
 }
 
 module.exports = {
   compile
 }
 
-
-
-
+compile(path.join(__dirname, '../cssg-cases/dotnet'))
