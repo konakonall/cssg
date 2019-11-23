@@ -5,10 +5,11 @@ const mustache = require('mustache');
 const util = require('./comm/util');
 const pretty = require('./comm/pretty');
 
-const isInitMethod = function (snippet) {
-  return snippet.name.startsWith('global-init')
+const isInitMethod = function (snippet, prefix) {
+  return snippet.name.startsWith(prefix)
 }
 
+var globalInitNamePrefix
 const templateIndentation = {}
 
 const genSnippet = function (snippet, macro, dynamicDefine, template, 
@@ -18,7 +19,7 @@ const genSnippet = function (snippet, macro, dynamicDefine, template,
   // remote ignore expression in code block
   for (const i in ignoreExpression4Snippet) {
     const exp = ignoreExpression4Snippet[i]
-    snippetContent = snippetContent.replace(new RegExp(exp, 'g'), "")
+    snippetContent = snippetContent.replace(new RegExp("\\s*" + exp, 'g'), "")
   }
 
   const snippetDoc = util.getSnippetFile(snippetsRoot, snippet.name)
@@ -86,10 +87,11 @@ function renderSnippetContent(snippet, macro, dynamicDefine, snippetTpl, indenta
   const value = Object.assign({}, macro, dynamicDefine || {})
   var snippetBody = mustache.render(snippet.bodyBlock, value)
   snippetBody = pretty.prettyCodeBlock(snippetBody, 0)
-  var snippetContent = isInitMethod(snippet) ? snippetBody : mustache.render(snippetTpl, 
-    Object.assign({
-      "bodyBlock": snippetBody
-    }, value))
+  var snippetContent = isInitMethod(snippet, globalInitNamePrefix) ? snippetBody : 
+    mustache.render(snippetTpl, 
+      Object.assign({
+        "bodyBlock": snippetBody
+      }, value))
   if (indentation > 0) {
     snippetContent = pretty.prettyCodeBlock(snippetContent, indentation)
   }
@@ -141,6 +143,7 @@ const compile = async function(projRoot) {
 
   // load ignore expression
   const ignoreExpression4Snippet = config.ignoreExpressionInDoc || []
+  globalInitNamePrefix = global.globalInitNamePrefix
 
   // create destination dir if necessary
   if (!fs.existsSync(snippetsRoot)) {
@@ -239,9 +242,3 @@ const compile = async function(projRoot) {
 module.exports = {
   compile
 }
-
-compile(path.join(__dirname, '../cssg-cases/dotnet'))
-
-// const content = util.loadFileContent(path.join(__dirname, 
-//   '../cssg-cases/dotnet/snippets/abort-multi-upload.snippet'))
-// console.log(pretty.prettyCodeBlock(content, 0))
