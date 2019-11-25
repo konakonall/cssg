@@ -124,6 +124,9 @@ const compile = async function(projRoot) {
   const extension = config.sourceExtension
   // Assembly source file root
   const sourcesRoot = path.join(projRoot, config.sourcesRoot)
+  // comment delimiter
+  const delimiter = config.commentDelimiter || ["\\/\\/", ""]
+  parser.setCommentDelimiter(delimiter)
 
   // macro defines
   const macro4doc = util.applyBaseConfig(config.macro4doc, global.macro4doc)
@@ -242,3 +245,5 @@ const compile = async function(projRoot) {
 module.exports = {
   compile
 }
+
+// compile('../cssg-cases/dotnet')

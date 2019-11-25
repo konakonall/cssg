@@ -1,6 +1,8 @@
 const readline = require('readline');
 const fs = require('fs');
 
+var commentDelimiter;
+
 class Snippet {
   constructor(lang, name) {
     this.lang = lang
@@ -22,6 +24,10 @@ class Snippet {
     const s = this.innerBodyBlockArray.join('')
     this.bodyBlock = s.substring(0, s.length - 2)
   }
+}
+
+const setCommentDelimiter = function(demiliter) {
+  commentDelimiter = demiliter
 }
 
 const parseDefine = async function (source) {
@@ -112,6 +118,10 @@ const parseSnippetBody = async function (source) {
     })
 
     readInterface.on('close', function(codeLine) {
+      if (snippet) {
+        snippet.finishBody()
+        snippets.push(snippet)
+      }
       resolve(snippets)
     })
   })
@@ -263,22 +273,22 @@ const parseSnippetBlockDefineInDoc = function (line) {
 }
 
 const parseBlockStartTagWithArg = function (codeLine, tag) {
-  const matcher = codeLine.trim().match(`\\/\\/\\s*\\.(cssg-${tag}-start): \\[(.+)\\]`)
+  const matcher = codeLine.trim().match(`${commentDelimiter[0]}\\s*\\.(cssg-${tag}-start): \\[(.+)\\]\\s*${commentDelimiter[1]}`)
   return matcher && matcher[2];
 }
 
 const parseBlockStartTag = function (codeLine, tag) {
-  const matcher = codeLine.trim().match(`\\/\\/\\s*\\.(cssg-${tag}-start)`)
+  const matcher = codeLine.trim().match(`${commentDelimiter[0]}\\s*\\.(cssg-${tag}-start)\\s*${commentDelimiter[1]}`)
   return matcher && matcher[1];
 }
 
 const parseBlockEndTag = function (codeLine, tag) {
-  const matcher = codeLine.trim().match(`\\/\\/\\s*\\.(cssg-${tag}-end)`)
+  const matcher = codeLine.trim().match(`${commentDelimiter[0]}\\s*\\.(cssg-${tag}-end)\\s*${commentDelimiter[1]}`)
   return matcher && matcher[1];
 }
 
 const parseMetadata = function (codeLine, meta) {
-  const matcher = codeLine.trim().match(`\\/\\/\\s*cssg-snippet-${meta}: \\[(.+)\\]`)
+  const matcher = codeLine.trim().match(`${commentDelimiter[0]}\\s*cssg-snippet-${meta}: \\[(.+)\\]\\s*${commentDelimiter[1]}`)
   return matcher && matcher[1];
 }
 
@@ -288,5 +298,6 @@ module.exports = {
   injectCodeSnippet2Doc,
   taggingDoc,
   parseDOC2Prototype,
-  Snippet
+  Snippet,
+  setCommentDelimiter
 }
