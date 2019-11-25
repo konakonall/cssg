@@ -4,7 +4,7 @@ const util = require('./comm/util')
 const parser = require('./comm/parser')
 
 const write = async function (projRoot) {
-  const config = util.loadEntryConfig(projRoot)
+  const config = util.loadEntryConfig(projRoot, 'cssg.json')
 
   const docsRoot = path.join(projRoot, config['docsRoot'])
   if (!fs.existsSync(docsRoot)) {
