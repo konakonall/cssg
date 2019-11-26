@@ -21,7 +21,7 @@ const write = async function (projRoot) {
       return util.loadFileContent(util.getSnippetFile(snippetRoot, snippetName))
     })
 
-    console.log('write new doc :', newDoc)
+    console.log('write doc done :', newDoc)
   }
 }
 

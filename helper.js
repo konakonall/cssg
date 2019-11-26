@@ -24,14 +24,14 @@ const assemble = async function (config, docRoot, template) {
   const protoFile = path.join(path.dirname(template), 'Assembly' + config.sourceExtension)
   const tpl = util.loadFileContent(template)
   var snp = []
-  var tops = []
+  var top = []
   for (var i in snippets) {
     const snippet = snippets[i]
     if (!snippet.name || !snippet.bodyBlock || snippet.bodyBlock.length < 1) {
       continue
     }
-    if (snippet.name.endsWith('topcls')) {
-      tops.push({
+    if (snippet.name.startsWith("global-init")) {
+      top.push({
         name: snippet.name,
         code: snippet.bodyBlock
       })
@@ -44,7 +44,7 @@ const assemble = async function (config, docRoot, template) {
     }
   }
   const codeContent = mustache.render(tpl, {
-    top: tops,
+    top: top,
     snippets: snp
   })
   util.saveFile(protoFile, codeContent)

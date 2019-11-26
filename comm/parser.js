@@ -191,7 +191,7 @@ const taggingDoc = async function (doc) {
     var isCodeBlockBackticksStart = false
 
     readInterface.on('line', function(line) {
-      const isCodeBlockBackticks = parseCodeBlockBackticks(line) != null
+      const isCodeBlockBackticks = parseCodeBlockBackticksInDoc(line) != null
 
       if (isCodeBlockBackticks) {
         if (!isCodeBlockBackticksStart) {

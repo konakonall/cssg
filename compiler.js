@@ -146,7 +146,7 @@ const compile = async function(projRoot) {
 
   // load ignore expression
   const ignoreExpression4Snippet = config.ignoreExpressionInDoc || []
-  globalInitNamePrefix = global.globalInitNamePrefix
+  globalInitNamePrefix = config.globalInitNamePrefix || global.globalInitNamePrefix
 
   // create destination dir if necessary
   if (!fs.existsSync(snippetsRoot)) {
@@ -178,7 +178,7 @@ const compile = async function(projRoot) {
   }
 
   // generate test case by group
-  const groups = global.group
+  const groups = Object.assign({}, global.group, config.group || {})
   const added = []
   for (var groupName in groups) {
     if (groups.hasOwnProperty(groupName)) {
