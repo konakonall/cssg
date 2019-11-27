@@ -32,6 +32,7 @@ const assemble = async function (config, docRoot, template) {
     }
     if (snippet.name.startsWith("global-init")) {
       top.push({
+        index: i,
         name: snippet.name,
         code: snippet.bodyBlock
       })

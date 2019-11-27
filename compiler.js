@@ -12,20 +12,59 @@ const isInitMethod = function (snippet, prefix) {
 var globalInitNamePrefix
 const templateIndentation = {}
 
-const genSnippet = function (snippet, macro, dynamicDefine, template, 
+const genSnippet = function (snippet, macro, dynamicDefine, template, exclusiveTemplate,
   ignoreExpression4Snippet, snippetsRoot) {
   let snippetContent = renderSnippetContent(snippet, macro, dynamicDefine, template)
 
-  // remote ignore expression in code block
-  for (const i in ignoreExpression4Snippet) {
-    const exp = ignoreExpression4Snippet[i]
-    snippetContent = snippetContent.replace(new RegExp("\\s*" + exp, 'g'), "")
+  // 对于单独的模版生成的 TestCase，因为后期无法合成 Assembly，保持文件内容不变
+  if (exclusiveTemplate[snippet.name] == null) {
+    // remote ignore expression in code block
+    for (const i in ignoreExpression4Snippet) {
+      const exp = ignoreExpression4Snippet[i]
+      snippetContent = snippetContent.replace(new RegExp("\\s*" + exp, 'g'), "")
+    }
   }
 
   const snippetDoc = util.getSnippetFile(snippetsRoot, snippet.name)
   util.saveFile(snippetDoc, snippetContent)
 
   console.log('generate snippet :', snippetDoc)
+
+  return snippetContent
+}
+
+const genSnippetAssembly = function(snippetContents, testcaseTpl, exclusiveTemplate, 
+  ext, testCaseRoot) {
+  var indentation = templateIndentation[testcaseTpl]
+  if (!indentation) {
+    indentation = getSnippetIndentation(testcaseTpl)
+    templateIndentation[testcaseTpl] = indentation
+  }
+
+  const steps = []
+  for (const name in snippetContents) {
+    if (snippetContents.hasOwnProperty(name)) {
+      const content = snippetContents[name]
+      if (exclusiveTemplate[name]) {
+        continue
+      }
+      steps.push({
+        name: getCamelCaseName(name),
+        snippet: pretty.prettyCodeBlock(content, indentation)
+      })
+    }
+  }
+  const name = "SnippetAssembly"
+  const assemblyContent = mustache.render(testcaseTpl, {
+    "name": name,
+    "steps": steps,
+    "isDemo": true
+  })
+
+  const testCaseFile = path.join(testCaseRoot, name + ext)
+  util.saveFile(testCaseFile, assemblyContent)
+  
+  console.log('generate snippet Assembly :', testCaseFile)
 }
 
 const genTestCase = function (pipeline, macro, dynamicDefine, snippetTpl, 
@@ -63,7 +102,8 @@ const genTestCase = function (pipeline, macro, dynamicDefine, snippetTpl,
     "name": camelCaseName,
     "steps": steps,
     "setupBlock": setupBlock,
-    "teardownBlock": teardownBlock
+    "teardownBlock": teardownBlock,
+    "isDemo": false
   })
 
   const testCaseFile = path.join(testCaseRoot, camelCaseName + ext)
@@ -118,7 +158,7 @@ const compile = async function(projRoot) {
   // snippets file destination dir
   const snippetsRoot = util.getSnippetsRoot(projRoot)
   // test case destination dir
-  const testCaseRoot = path.join(projRoot, 'dist')
+  const testCaseRoot = path.join(projRoot, config.compileDist || 'dist')
 
   // source file extension
   const extension = config.sourceExtension
@@ -166,16 +206,21 @@ const compile = async function(projRoot) {
   }
   // generate snippet file
   const snippetNameDic = {}
+  const snippetContents = {}
   for (var i in snippets) {
     const snippet = snippets[i]
     if (snippet.name) {
       mustache.parse(snippet.bodyBlock)
-      genSnippet(snippet, macro4doc, dynamicDefine, snippetTpl, 
-        ignoreExpression4Snippet, snippetsRoot)
-
+      const content = genSnippet(snippet, macro4doc, dynamicDefine, snippetTpl, 
+        exclusiveTemplate, ignoreExpression4Snippet, snippetsRoot)
+      
+      snippetContents[snippet.name] = content
       snippetNameDic[snippet.name] = snippet
     }
   }
+
+  genSnippetAssembly(snippetContents, testcaseTpl, exclusiveTemplate, 
+    extension, testCaseRoot)
 
   // generate test case by group
   const groups = Object.assign({}, global.group, config.group || {})

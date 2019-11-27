@@ -1,6 +1,6 @@
 {
   "name": "cssg",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "cos sdk snippet generator",
   "main": "index.js",
   "author": "wjielai",
