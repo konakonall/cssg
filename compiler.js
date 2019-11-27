@@ -54,7 +54,7 @@ const genSnippetAssembly = function(snippetContents, testcaseTpl, exclusiveTempl
       })
     }
   }
-  const name = "SnippetAssembly"
+  const name = "SnippetEverything"
   const assemblyContent = mustache.render(testcaseTpl, {
     "name": name,
     "steps": steps,
@@ -64,7 +64,7 @@ const genSnippetAssembly = function(snippetContents, testcaseTpl, exclusiveTempl
   const testCaseFile = path.join(testCaseRoot, name + ext)
   util.saveFile(testCaseFile, assemblyContent)
   
-  console.log('generate snippet Assembly :', testCaseFile)
+  console.log('generate snippet Everything :', testCaseFile)
 }
 
 const genTestCase = function (pipeline, macro, dynamicDefine, snippetTpl, 
