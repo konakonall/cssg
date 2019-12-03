@@ -1,12 +1,13 @@
 {
   "name": "cssg",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "cos sdk snippet generator",
   "main": "index.js",
   "author": "wjielai",
   "license": "MIT",
   "dependencies": {
     "mustache": "^3.1.0",
+    "simple-git": "^1.126.0",
     "yargs": "^15.0.2"
   },
   "bin": {

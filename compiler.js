@@ -5,27 +5,27 @@ const mustache = require('mustache');
 const util = require('./comm/util');
 const pretty = require('./comm/pretty');
 
-const isInitMethod = function (snippet, prefix) {
-  return snippet.name.startsWith(prefix)
-}
-
-var globalInitNamePrefix
+// 记录模版对应的代码缩进值
 const templateIndentation = {}
 
-const genSnippet = function (snippet, macro, dynamicDefine, template, exclusiveTemplate,
-  ignoreExpression4Snippet, snippetsRoot) {
-  let snippetContent = renderSnippetContent(snippet, macro, dynamicDefine, template)
+const genSnippet = function (snippet, option) {
+  let snippetContent = renderSnippetContent(
+    snippet, 
+    option.macro, 
+    option.dynamicDefine,
+    0)
 
-  // 对于单独的模版生成的 TestCase，因为后期无法合成 Assembly，保持文件内容不变
-  if (exclusiveTemplate[snippet.name] == null) {
+  // 对于测试case才替换表达式
+  if (option.caseForTesting.includes(snippet.name)) {
     // remote ignore expression in code block
-    for (const i in ignoreExpression4Snippet) {
-      const exp = ignoreExpression4Snippet[i]
+    for (const i in option.ignoreExpression4Snippet) {
+      const exp = option.ignoreExpression4Snippet[i]
       snippetContent = snippetContent.replace(new RegExp("\\s*" + exp, 'g'), "")
     }
   }
 
-  const snippetDoc = util.getSnippetFile(snippetsRoot, snippet.name)
+  const snippetDoc = util.getSnippetFile(option.snippetsRoot, 
+    option.snippetNameCommonPrefix + snippet.name)
   util.saveFile(snippetDoc, snippetContent)
 
   console.log('generate snippet :', snippetDoc)
@@ -33,80 +33,87 @@ const genSnippet = function (snippet, macro, dynamicDefine, template, exclusiveT
   return snippetContent
 }
 
-const genSnippetAssembly = function(snippetContents, testcaseTpl, exclusiveTemplate, 
-  ext, testCaseRoot) {
-  var indentation = templateIndentation[testcaseTpl]
+const genSnippetEverything = function(snippetContents, option) {
+  // figure out code block indentation
+  var indentation = templateIndentation[option.testcaseTpl]
   if (!indentation) {
-    indentation = getSnippetIndentation(testcaseTpl)
-    templateIndentation[testcaseTpl] = indentation
+    indentation = getSnippetIndentation(option.testcaseTpl)
+    templateIndentation[option.testcaseTpl] = indentation
   }
 
-  const steps = []
+  const methods = []
   for (const name in snippetContents) {
     if (snippetContents.hasOwnProperty(name)) {
       const content = snippetContents[name]
-      if (exclusiveTemplate[name]) {
-        continue
+      //只有测试case才加入文件
+      if (option.caseForTesting.includes(name)) {
+        methods.push({
+          name: getCamelCaseName(name),
+          snippet: pretty.prettyCodeBlock(content, indentation)
+        })
       }
-      steps.push({
-        name: getCamelCaseName(name),
-        snippet: pretty.prettyCodeBlock(content, indentation)
-      })
     }
   }
   const name = "SnippetEverything"
-  const assemblyContent = mustache.render(testcaseTpl, {
+  const assemblyContent = mustache.render(option.testcaseTpl, {
     "name": name,
-    "steps": steps,
+    "methods": methods,
     "isDemo": true
   })
 
-  const testCaseFile = path.join(testCaseRoot, name + ext)
+  const testCaseFile = path.join(option.testCaseRoot, name + option.extension)
   util.saveFile(testCaseFile, assemblyContent)
   
   console.log('generate snippet Everything :', testCaseFile)
 }
 
-const genTestCase = function (pipeline, macro, dynamicDefine, snippetTpl, 
-  testcaseTpl, ext, testCaseRoot) {
+const genTestCase = function (pipeline, option) {
   const camelCaseName = getCamelCaseName(pipeline.name)
+  delete pipeline.name
 
   // figure out code block indentation
-  var indentation = templateIndentation[testcaseTpl]
+  var indentation = templateIndentation[option.testcaseTpl]
   if (!indentation) {
-    indentation = getSnippetIndentation(testcaseTpl)
-    templateIndentation[testcaseTpl] = indentation
+    indentation = getSnippetIndentation(option.testcaseTpl)
+    templateIndentation[option.testcaseTpl] = indentation
   }
 
-  const steps = []
-  for (let i in pipeline.steps) {
-    const snippet = pipeline.steps[i]
-    const snippetContent = renderSnippetContent(snippet, macro, dynamicDefine[snippet.name], 
-      snippetTpl, indentation)
-    steps.push({
-      name: getCamelCaseName(snippet.name),
-      snippet: snippetContent
-    })
-  }
-  var setupBlock, teardownBlock
-  if (pipeline.setup) {
-    setupBlock = renderSnippetContent(pipeline.setup, macro, dynamicDefine[pipeline.setup.name],
-      snippetTpl, indentation)
-  }
-  if (pipeline.teardown) {
-    teardownBlock = renderSnippetContent(pipeline.teardown, macro, dynamicDefine[pipeline.teardown.name],
-      snippetTpl, indentation)
-  }
-
-  const testCaseContent = mustache.render(testcaseTpl, {
+  const methodsName = []
+  const hash = Object.assign({
     "name": camelCaseName,
-    "steps": steps,
-    "setupBlock": setupBlock,
-    "teardownBlock": teardownBlock,
-    "isDemo": false
-  })
+    "isDemo": false,
+    "methods": []
+  }, option.macro)
+  for (let segName in pipeline) {
+    if (pipeline.hasOwnProperty(segName)) {
+      const segs = pipeline[segName]
+      hash[segName] = []
+      if (Array.isArray(segs)) {
+        for (let i in segs) {
+          const snippet = segs[i]
+          const snippetContent = renderSnippetContent(snippet, option.macro, 
+            option.dynamicDefine[snippet.name], indentation)
+          const name = snippet.name
+          const o = {
+            name: getCamelCaseName(name),
+            snippet: snippetContent
+          }
+          if (!methodsName.includes(name) && option.methodsCategory.includes(segName)) {
+            hash.methods.push(o)
+            methodsName.push(name)
+          }
+          hash[segName].push(o)
+        }
+      } else {
+        hash[segName] = segs
+      }
+    }
+  }
+  hash.hasSteps = hash.steps && hash.steps.length > 0
 
-  const testCaseFile = path.join(testCaseRoot, camelCaseName + ext)
+  const testCaseContent = mustache.render(option.testcaseTpl, hash)
+
+  const testCaseFile = path.join(option.testCaseRoot, camelCaseName + option.extension)
   util.saveFile(testCaseFile, testCaseContent)
   
   console.log('generate test case :', testCaseFile)
@@ -114,28 +121,25 @@ const genTestCase = function (pipeline, macro, dynamicDefine, snippetTpl,
 
 function getSnippetIndentation(testcaseTpl) {
   const lines = testcaseTpl.split(/(?:\r\n|\r|\n)/g)
+  var findMethodTag = false
   for (const i in lines) {
     const lineCode = lines[i]
-    const matcher = lineCode.match("(\\s*){{2,3}snippet}{2,3}\\s*")
-    if (matcher) {
-      return matcher[1].length
+    if (!findMethodTag) {
+      findMethodTag = lineCode.match("(\\s*){{2,3}#methods}{2,3}\\s*")
+    }
+    if (findMethodTag) {
+      const matcher = lineCode.match("(\\s*){{2,3}snippet}{2,3}\\s*")
+      if (matcher) {
+        return matcher[1].length
+      }
     }
   }
 }
 
-function renderSnippetContent(snippet, macro, dynamicDefine, snippetTpl, indentation) {
+function renderSnippetContent(snippet, macro, dynamicDefine, indentation) {
   const value = Object.assign({}, macro, dynamicDefine || {})
-  var snippetBody = mustache.render(snippet.bodyBlock, value)
-  snippetBody = pretty.prettyCodeBlock(snippetBody, 0)
-  var snippetContent = isInitMethod(snippet, globalInitNamePrefix) ? snippetBody : 
-    mustache.render(snippetTpl, 
-      Object.assign({
-        "bodyBlock": snippetBody
-      }, value))
-  if (indentation > 0) {
-    snippetContent = pretty.prettyCodeBlock(snippetContent, indentation)
-  }
-  return snippetContent
+  const snippetBody = mustache.render(snippet.bodyBlock, value)
+  return pretty.prettyCodeBlock(snippetBody, indentation)
 }
 
 const getCamelCaseName = function (name) {
@@ -148,6 +152,31 @@ const getCamelCaseName = function (name) {
   return camelCaseName
 }
 
+const isInitMethod = function (snippet, prefix) {
+  return snippet.name.startsWith(prefix)
+}
+
+const getCastForTest = function (testGroup) {
+  const caseNames = []
+  for (var groupName in testGroup) {
+    if (testGroup.hasOwnProperty(groupName)) {
+      const group = testGroup[groupName]
+
+      for (var segName in group) {
+        if (group.hasOwnProperty(segName)) {
+          const segs = group[segName]
+          for (var i in segs) {
+            if (!caseNames.includes(segs[i])) {
+              caseNames.push(segs[i])
+            }
+          }
+        }
+      }
+    }
+  }
+  return caseNames
+}
+
 const compile = async function(projRoot) {
   console.log('CSSG compile start:\r\n----------------- ')
   // load project config
@@ -158,7 +187,7 @@ const compile = async function(projRoot) {
   // snippets file destination dir
   const snippetsRoot = util.getSnippetsRoot(projRoot)
   // test case destination dir
-  const testCaseRoot = path.join(projRoot, config.compileDist || 'dist')
+  const testCaseRoot = path.join(projRoot, config.compileDist || global.compileDist)
 
   // source file extension
   const extension = config.sourceExtension
@@ -169,24 +198,22 @@ const compile = async function(projRoot) {
   parser.setCommentDelimiter(delimiter)
 
   // macro defines
+  config.macro4doc.language = config.language
+  config.macro4test.language = config.language
   const macro4doc = util.applyBaseConfig(config.macro4doc, global.macro4doc)
   const macro4test = util.applyBaseConfig(config.macro4test, global.macro4test)
   const dynamicDefine = config.dynamic || {}
 
   // template defines
-  var snippetTpl = path.join(projRoot, config.snippetTemplate)
   var testcaseTpl = path.join(projRoot, config.testcaseTemplate)
   const exclusiveTemplate = config.exclusiveTemplate || {}
-
-  snippetTpl = util.loadFileContent(snippetTpl)
   testcaseTpl = util.loadFileContent(testcaseTpl)
-
-  mustache.parse(snippetTpl)
   mustache.parse(testcaseTpl)
 
   // load ignore expression
   const ignoreExpression4Snippet = config.ignoreExpressionInDoc || []
-  globalInitNamePrefix = config.globalInitNamePrefix || global.globalInitNamePrefix
+  // 表示什么分类的操作可以抽象出方法
+  const methodsCategory = config.methodsCategory || global.methodsCategory
 
   // create destination dir if necessary
   if (!fs.existsSync(snippetsRoot)) {
@@ -195,75 +222,136 @@ const compile = async function(projRoot) {
   if (!fs.existsSync(testCaseRoot)) {
     fs.mkdirSync(testCaseRoot, { recursive: true })
   }
+  // 记录当前有哪些代码段是真正跑测试流程的
+  const caseForTesting = getCastForTest(global.testGroup)
 
   // lookup Assembly file
   const sources = util.traverseFiles(sourcesRoot, extension)
-  // get all snippets
+  // lookup all snippets
+  const globalHeaderName = global.globalHeaderName
+  const globalInitNamePrefix = config.globalInitNamePrefix || global.globalInitNamePrefix
+  const snippetNameCommonPrefix = config.snippetNameCommonPrefix || ''
   const snippets = []
+  var globalHeaderBlock // 头部 service/client 定义
   for (var i in sources) {
     const subSnippets = await parser.parseSnippetBody(sources[i])
+    var headerIndex = -1
+    for (var j in subSnippets) {
+      const snippet = subSnippets[j]
+      if (snippetNameCommonPrefix.length > 0) {
+        // 去掉前缀
+        snippet.name = snippet.name.replace(snippetNameCommonPrefix, "")
+      }
+      if (globalHeaderBlock == null) {
+        if (snippet.name == globalHeaderName) {
+          headerIndex = j
+          // 把头部定义加到代码块中
+          globalHeaderBlock = snippet.bodyBlock
+          // 加到之前的代码块中
+          for (var k in snippets) {
+            if (!isInitMethod(snippet, globalInitNamePrefix)) {
+              snippets[k].bodyBlock = globalHeaderBlock 
+                + util.LINE_BREAKER 
+                + util.LINE_BREAKER 
+                + snippets[k].bodyBlock
+            }
+          }
+        }
+      } else if (globalHeaderBlock) {
+        if (!isInitMethod(snippet, globalInitNamePrefix)) {
+          snippet.bodyBlock = globalHeaderBlock 
+          + util.LINE_BREAKER 
+          + util.LINE_BREAKER 
+          + snippet.bodyBlock
+        }
+      }
+    }
+    if (headerIndex >= 0) {
+      subSnippets.splice(headerIndex, 1)
+    } 
     Array.prototype.push.apply(snippets, subSnippets)
   }
+
   // generate snippet file
   const snippetNameDic = {}
   const snippetContents = {}
   for (var i in snippets) {
     const snippet = snippets[i]
     if (snippet.name) {
-      mustache.parse(snippet.bodyBlock)
-      const content = genSnippet(snippet, macro4doc, dynamicDefine, snippetTpl, 
-        exclusiveTemplate, ignoreExpression4Snippet, snippetsRoot)
+      const content = genSnippet(snippet, {
+        "macro": macro4doc,
+        "dynamicDefine": dynamicDefine[snippet.name],
+        caseForTesting,
+        ignoreExpression4Snippet,
+        snippetsRoot,
+        snippetNameCommonPrefix
+      })
       
       snippetContents[snippet.name] = content
       snippetNameDic[snippet.name] = snippet
     }
   }
 
-  genSnippetAssembly(snippetContents, testcaseTpl, exclusiveTemplate, 
-    extension, testCaseRoot)
+  // generate snippet assembly case
+  genSnippetEverything(snippetContents, {
+    testcaseTpl,
+    caseForTesting,
+    extension,
+    testCaseRoot
+  })
 
   // generate test case by group
-  const groups = Object.assign({}, global.group, config.group || {})
+  const groups = Object.assign({}, global.testGroup, config.testGroup || {})
   const added = []
   for (var groupName in groups) {
     if (groups.hasOwnProperty(groupName)) {
       const group = groups[groupName]
-
       const pipeline = {}
-      const steps = Array.isArray(group) ? group : group.steps
-      const gs = []
-      for (var i in steps) {
-        if (snippetNameDic.hasOwnProperty(steps[i])) {
-          gs.push(snippetNameDic[steps[i]])
-          added.push([steps[i]])
-        }
-      }
+
       pipeline.name = groupName
-      pipeline.steps = gs
-      if (!Array.isArray(group)) {
-        if (snippetNameDic.hasOwnProperty(group.setup)) {
-          pipeline.setup = snippetNameDic[group.setup]
-          added.push(group.setup)
-        }
-        if (snippetNameDic.hasOwnProperty(group.teardown)) {
-          pipeline.teardown = snippetNameDic[group.teardown]
-          added.push(group.teardown)
+      var hasMethodList = false
+      for (var segName in group) {
+        if (group.hasOwnProperty(segName)) {
+          const segs = group[segName]
+          if (Array.isArray(segs)) {
+            // 方法列表
+            const gs = []
+            for (var i in segs) {
+              if (snippetNameDic.hasOwnProperty(segs[i])) {
+                hasMethodList = true
+                gs.push(snippetNameDic[segs[i]])
+                added.push([segs[i]])
+              }
+            }
+            pipeline[segName] = gs
+          } else {
+            pipeline[segName] = segs
+          }
         }
       }
 
-      var tpl = testcaseTpl
-      if (exclusiveTemplate[groupName]) {
-        tpl = path.join(projRoot, exclusiveTemplate[groupName])
-        tpl = util.loadFileContent(tpl)
+      if (hasMethodList) {
+        var tpl = testcaseTpl
+        if (exclusiveTemplate[groupName]) {
+          tpl = path.join(projRoot, exclusiveTemplate[groupName])
+          tpl = util.loadFileContent(tpl)
+        }
+  
+        genTestCase(pipeline, {
+          methodsCategory,
+          "macro": macro4test, 
+          dynamicDefine, 
+          "testcaseTpl": tpl,
+          extension, 
+          testCaseRoot
+        })
       }
-
-      genTestCase(pipeline, macro4test, dynamicDefine, snippetTpl, tpl, extension, 
-        testCaseRoot)
     }
   }
   for (var i in added) {
     delete snippetNameDic[added[i]]
   }
+
   // generate remain test case
   for (var name in snippetNameDic) {
     if (snippetNameDic.hasOwnProperty(name)) {
@@ -278,8 +366,14 @@ const compile = async function(projRoot) {
         "steps": [snippet],
         "name": snippet.name 
       }
-      genTestCase(pipeline, macro4test, dynamicDefine, snippetTpl, tpl, extension, 
-        testCaseRoot)
+      genTestCase(pipeline, {
+        methodsCategory,
+        "macro": macro4test, 
+        dynamicDefine, 
+        "testcaseTpl": tpl,
+        extension, 
+        testCaseRoot
+      })
     }
   }
 
@@ -291,4 +385,4 @@ module.exports = {
   compile
 }
 
-// compile('../cssg-cases/dotnet')
+compile('../cssg-cases/iOS')

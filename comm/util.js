@@ -1,6 +1,8 @@
 var fs = require('fs');
 var path = require('path');
 
+const LINE_BREAKER = "\r\n"
+
 const getSnippetsRoot = function (root) {
   return path.join(root, 'snippets')
 }
@@ -16,10 +18,13 @@ const loadEntryConfig = function(root, configFileName) {
 
 const applyBaseConfig = function(config, g) {
   const nc = {}
+  Object.keys(g).forEach(function(key) {
+    nc[key] = eval('`' + g[key] + '`')
+  });
   Object.keys(config).forEach(function(key) {
     nc[key] = eval('`' + config[key] + '`')
   });
-  return Object.assign({}, g, nc)
+  return nc
 }
 
 const traverseFiles = function(root, ext) {
@@ -60,5 +65,6 @@ module.exports = {
   applyBaseConfig,
   traverseFiles,
   saveFile,
-  loadFileContent
+  loadFileContent,
+  LINE_BREAKER
 }

@@ -18,7 +18,7 @@ const prettyCodeBlock = function (snippetBody, toIndentation) {
       newIndentation = Math.max(0, indentation - startIndentation) + toIndentation
     }
     const newLine = getIndentationString(newIndentation) + matcher[2] + 
-      (i < lines.length - 1 ? '\r\n' : '')
+      (i < lines.length - 1 ? util.LINE_BREAKER : '')
     
     newSnippetBody.push(newLine)
   }

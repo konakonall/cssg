@@ -1,5 +1,6 @@
 const readline = require('readline');
 const fs = require('fs');
+const util = require('./util');
 
 var commentDelimiter;
 
@@ -7,13 +8,8 @@ class Snippet {
   constructor(lang, name) {
     this.lang = lang
     this.name = name
-    this.defineBlock = ''
     this.bodyBlock = ''
     this.innerBodyBlockArray = []
-  }
-
-  appendDefine(newBlock) {
-    this.defineBlock = this.defineBlock.concat(newBlock)
   }
 
   appendBody(newBlock) {
@@ -28,48 +24,6 @@ class Snippet {
 
 const setCommentDelimiter = function(demiliter) {
   commentDelimiter = demiliter
-}
-
-const parseDefine = async function (source) {
-  const readInterface = readline.createInterface({
-    input: fs.createReadStream(source),
-    output: process.stdout,
-    terminal: false
-  })
-  
-  return new Promise((resolve, reject) => {
-    var snippets = []
-
-    var mIsDefineBlockStart = false
-    var snippet = null
-    var currentLang = null
-
-    readInterface.on('line', function(codeLine) {
-      const lang = parseMetadata(codeLine, 'lang')
-      if (lang != null) {
-        currentLang = lang
-        return
-      }
-
-      var thisIsDefineBlockStart = mIsDefineBlockStart || parseBlockStartTag(codeLine, 'define') != null
-      thisIsDefineBlockStart = thisIsDefineBlockStart && parseBlockEndTag(codeLine, 'define') == null
-
-      if (thisIsDefineBlockStart && !mIsDefineBlockStart) {
-        snippet = new Snippet(currentLang, null)
-        snippets.push(snippet)
-      }
-
-      if (thisIsDefineBlockStart && mIsDefineBlockStart) {
-        snippet.appendDefine(codeLine + '\n')
-      }
-
-      mIsDefineBlockStart = thisIsDefineBlockStart
-    })
-
-    readInterface.on('close', function(codeLine) {
-      resolve(snippets)
-    })
-  })
 }
 
 // 解析主文件
@@ -110,7 +64,7 @@ const parseSnippetBody = async function (source) {
         }
         snippet = new Snippet(currentLang, name)
       } else if ((thisIsBodyBlockStart && mIsBodyBlockStart) && !(mIsIgnoreBlockStart || thisIsIgnoreBlockStart)) {
-        snippet.appendBody(codeLine + '\r\n')
+        snippet.appendBody(snakeSymbol(codeLine) + util.LINE_BREAKER)
       }
 
       mIsBodyBlockStart = thisIsBodyBlockStart
@@ -130,51 +84,102 @@ const parseSnippetBody = async function (source) {
 // 将代码段插入文档
 const injectCodeSnippet2Doc = async function (doc, getSnippetContent) {
   const tempDoc = doc + '.temp'
-  const readInterface = readline.createInterface({
-    input: fs.createReadStream(doc),
-    output: process.stdout,
-    terminal: false
-  })
-  
   const fd = fs.openSync(tempDoc, 'w')
-  return new Promise((resolve, reject) => {
-    var currSnippetName = null
-    var isCodeBlockBackticksStart = false
-    var isCodeBlockBackticksEnd = false
+  // const readInterface = readline.createInterface({
+  //   input: fs.createReadStream(doc),
+  //   output: process.stdout,
+  //   terminal: false
+  // })
 
-    readInterface.on('line', function(line) {
-      const snippetName = parseSnippetBlockDefineInDoc(line)
-      if (snippetName) {
-        currSnippetName = snippetName
-      }
+  const docContent = util.loadFileContent(doc)
 
-      if (!isCodeBlockBackticksStart) {
-        fs.writeSync(fd, line + '\r\n')
-      }
+  var regex1 = RegExp('\\[//\\]\\s*:\\s*#\\s*\\(\\.cssg-snippet-([^)]+)\\)','g');
+  const tagIndexes = []
+  const codeBlockIndexes = []
 
-      if (currSnippetName) {
-        const isCodeBlockBackticks = parseCodeBlockBackticksInDoc(line) != null
-        const preISCodeBlockBackticksStart = isCodeBlockBackticksStart
-        isCodeBlockBackticksStart = preISCodeBlockBackticksStart || isCodeBlockBackticks
-        isCodeBlockBackticksEnd = preISCodeBlockBackticksStart && isCodeBlockBackticks
-
-        if (isCodeBlockBackticksEnd) {
-          fs.writeSync(fd, getSnippetContent(currSnippetName) + '\r\n')
-          fs.writeSync(fd, line + '\r\n')
-          isCodeBlockBackticksStart = false
-          currSnippetName = null
-        }
-      }
-
+  var array1;
+  while ((array1 = regex1.exec(docContent)) !== null) {
+    tagIndexes.push({
+      name: array1[1],
+      lastIndex: regex1.lastIndex
     })
+  }
 
-    readInterface.on('close', function(line) {
-      fs.closeSync(fd)
-      fs.unlinkSync(doc)
-      fs.renameSync(tempDoc, doc)
-      resolve(doc)
-    })
-  })
+  regex1 = RegExp('```[^`(\\r|\\n||\\r\\n)]*(\\r|\\n||\\r\\n)','g');
+  while ((array1 = regex1.exec(docContent)) !== null) {
+    if (codeBlockIndexes.length % 2 == 0) {
+      codeBlockIndexes.push(regex1.lastIndex)
+    } else {
+      codeBlockIndexes.push(regex1.lastIndex - array1[0].length)
+    }
+  }
+
+  const buffer = []
+  var start = 0
+  for (const i in tagIndexes) {
+    const segment = tagIndexes[i]
+    const lastIndex = segment.lastIndex
+    var codeStart, codeEnd
+    for (var j = 0; j < codeBlockIndexes.length; j++) {
+      if (codeBlockIndexes[j] > lastIndex) {
+        codeStart = codeBlockIndexes[j]
+        codeEnd = codeBlockIndexes[j + 1]
+        break
+      }
+    }
+
+    buffer.push(docContent.substring(start, codeStart))
+    buffer.push(getSnippetContent(segment.name) + '\n')
+    start = codeEnd
+  }
+  if (start < docContent.length) {
+    buffer.push(docContent.substring(start))
+  }
+
+  fs.writeFileSync(fd, buffer.join(''))
+  fs.closeSync(fd)
+  fs.unlinkSync(doc)
+  fs.renameSync(tempDoc, doc)
+  return Promise.resolve(doc)
+  
+  // return new Promise((resolve, reject) => {
+  //   var currSnippetName = null
+  //   var isCodeBlockBackticksStart = false
+  //   var isCodeBlockBackticksEnd = false
+
+  //   readInterface.on('line', function(line) {
+  //     const snippetName = parseSnippetBlockDefineInDoc(line)
+  //     if (snippetName) {
+  //       currSnippetName = snippetName
+  //     }
+
+  //     if (!isCodeBlockBackticksStart) {
+  //       fs.writeSync(fd, line + '\n')
+  //     }
+
+  //     if (currSnippetName) {
+  //       const isCodeBlockBackticks = parseCodeBlockBackticksInDoc(line) != null
+  //       const preISCodeBlockBackticksStart = isCodeBlockBackticksStart
+  //       isCodeBlockBackticksStart = preISCodeBlockBackticksStart || isCodeBlockBackticks
+  //       isCodeBlockBackticksEnd = preISCodeBlockBackticksStart && isCodeBlockBackticks
+
+  //       if (isCodeBlockBackticksEnd) {
+  //         fs.writeSync(fd, getSnippetContent(currSnippetName) + '\n')
+  //         fs.writeSync(fd, line + '\n')
+  //         isCodeBlockBackticksStart = false
+  //         currSnippetName = null
+  //       }
+  //     }
+
+  //   })
+
+  //   readInterface.on('close', function(line) {
+  //     fs.closeSync(fd)
+  //     fs.unlinkSync(doc)
+  //     fs.renameSync(tempDoc, doc)
+  //     resolve(doc)
+  //   })
+  // })
 }
 
 // 辅助方法：文档内容插入标记
@@ -195,13 +200,13 @@ const taggingDoc = async function (doc) {
 
       if (isCodeBlockBackticks) {
         if (!isCodeBlockBackticksStart) {
-          fs.writeSync(fd, '[//]: # (.cssg-snippet-)\r\n')
+          fs.writeSync(fd, `[//]: # (.cssg-snippet-)${util.LINE_BREAKER}`)
           isCodeBlockBackticksStart = true
         } else {
           isCodeBlockBackticksStart = false
         }
       }
-      fs.writeSync(fd, line + '\r\n')
+      fs.writeSync(fd, line + util.LINE_BREAKER)
     })
 
     readInterface.on('close', function(line) {
@@ -252,7 +257,7 @@ const parseDOC2Prototype = async function (doc) {
       }
 
       if (currSnippet) {
-        currSnippet.appendBody(line + '\r\n')
+        currSnippet.appendBody(line + util.LINE_BREAKER)
       }
 
     })
@@ -261,6 +266,11 @@ const parseDOC2Prototype = async function (doc) {
       resolve(snippets)
     })
   })
+}
+
+const snakeSymbol = function (line) {
+  const matcher = line.trim().match(".>>({{.+}})<<.")
+  return matcher ? line.replace(matcher[0], matcher[1]) : line;
 }
 
 const parseCodeBlockBackticksInDoc = function (line) {
@@ -293,7 +303,6 @@ const parseMetadata = function (codeLine, meta) {
 }
 
 module.exports = {
-  parseDefine,
   parseSnippetBody,
   injectCodeSnippet2Doc,
   taggingDoc,
