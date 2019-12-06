@@ -13,7 +13,7 @@ const tagDocuments = async function (docRoot) {
   }
 }
 
-const assemble = async function (config, docRoot, template) {
+const assemble = async function (docRoot, template) {
   const docs = util.traverseFiles(docRoot, 'md')
   var snippets = []
   for (const i in docs) {
@@ -21,7 +21,7 @@ const assemble = async function (config, docRoot, template) {
     const subSnippets = await parser.parseDOC2Prototype(doc)
     Array.prototype.push.apply(snippets, subSnippets);
   }
-  const protoFile = path.join(path.dirname(template), 'Assembly' + config.sourceExtension)
+  const protoFile = path.join(path.dirname(template), 'Assembly')
   const tpl = util.loadFileContent(template)
   var snp = []
   var top = []
@@ -56,7 +56,6 @@ const args = require('yargs').argv
 const action  = args.action
 
 const projRoot = process.cwd()
-const config = util.loadEntryConfig(projRoot, 'cssg.json')
 
 if ('tagging' == action) {
   const docRoot = path.join(projRoot, args.dir)
@@ -64,7 +63,7 @@ if ('tagging' == action) {
 } else if ('assemble' == action) {
   const docRoot = path.join(projRoot, args.dir)
   const template = path.join(projRoot, args.template)
-  assemble(config, docRoot, template)
+  assemble(docRoot, template)
 } else if (action) {
   console.error("Unknown Action:", action)
 } else {

@@ -107,6 +107,7 @@ const injectCodeSnippet2Doc = async function (doc, getSnippetContent) {
 
   regex1 = RegExp('```[^`(\\r|\\n||\\r\\n)]*(\\r|\\n||\\r\\n)','g');
   while ((array1 = regex1.exec(docContent)) !== null) {
+    // 键值对，0表示开始，1表示结束，依次往后排
     if (codeBlockIndexes.length % 2 == 0) {
       codeBlockIndexes.push(regex1.lastIndex)
     } else {
@@ -129,7 +130,12 @@ const injectCodeSnippet2Doc = async function (doc, getSnippetContent) {
     }
 
     buffer.push(docContent.substring(start, codeStart))
-    buffer.push(getSnippetContent(segment.name) + '\n')
+    const snippet = getSnippetContent(segment.name)
+    if (snippet) {
+      buffer.push(getSnippetContent(segment.name) + '\n')
+    } else {
+      buffer.push(docContent.substring(codeStart, codeEnd))
+    }
     start = codeEnd
   }
   if (start < docContent.length) {
