@@ -9,7 +9,7 @@ const git = require('./comm/git')
 // 记录模版对应的代码缩进值
 const templateIndentation = {}
 
-const test = async function (projRoot) {
+const build = async function (projRoot) {
   console.log('CSSG compile start:\r\n----------------- ')
 
   // load global config
@@ -99,6 +99,9 @@ const testOne = async function (projRoot, docsDir, global) {
   // 表示什么分类的操作可以抽象出方法
   const methodsCategory = config.methodsCategory || global.methodsCategory
 
+  // 初始化代码块名字的前缀
+  const globalInitNamePrefix = config.globalInitNamePrefix || global.globalInitNamePrefix
+
   // create destination dir if necessary
   if (fs.existsSync(testCaseRoot)) {
     fs.removeSync(testCaseRoot)
@@ -114,7 +117,7 @@ const testOne = async function (projRoot, docsDir, global) {
 
   // 抽取代码段
   const snippets = []
-  var initSnippet
+  var initSnippet = {}
   for (var i in documents) {
     const subSnippets = await parser.parseDOC2Prototype(documents[i])
     var initBlockIndex = -1
@@ -192,6 +195,7 @@ const testOne = async function (projRoot, docsDir, global) {
   
         genTestCase(pipeline, {
           methodsCategory,
+          globalInitNamePrefix,
           "testcaseTpl": tpl,
           extension, 
           testCaseRoot
@@ -220,6 +224,7 @@ const testOne = async function (projRoot, docsDir, global) {
       }
       genTestCase(pipeline, {
         methodsCategory,
+        globalInitNamePrefix,
         "testcaseTpl": tpl,
         extension, 
         testCaseRoot
@@ -232,9 +237,7 @@ const testOne = async function (projRoot, docsDir, global) {
 const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun) {
   var body = snippet.bodyBlock
 
-  const insertExps = beforeRun.insert
-  if (insertExps) {
-    const lines = body.split(/(?:\r\n|\r|\n)/g)
+  const lines = body.split(/(?:\r\n|\r|\n)/g)
     const lineBuffer = []
 
     for (const i in lines) {
@@ -246,30 +249,43 @@ const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun) 
         }
       }
 
-      // 其他加工
       const belowExps = []
-      for (var j in insertExps) {
-        const insertExp = insertExps[j]
-        if (lineCode == insertExp.target) {
-          if (insertExp.anchor == 'below') {
-            belowExps.push(insertExp.expression)
-          } else if (insertExp.anchor == 'above') {
-            lineBuffer.push(insertExp.expression)
+      // 其他加工
+      if (beforeRun) {
+        const insertExps = beforeRun.insert
+        if (insertExps) {
+          for (var j in insertExps) {
+            const insertExp = insertExps[j]
+            if (lineCode.trim() == insertExp.anchor) {
+              // 保持缩进
+              var indentation = 0
+              const matcher = lineCode.match("(\\s*).+\\s*")
+              if (matcher) {
+                indentation = matcher[1].length
+              }
+              const indentationString = pretty.getIndentationString(indentation)
+              if (insertExp.align == 'below') {
+                belowExps.push(indentationString + insertExp.expression)
+              } else if (insertExp.align == 'above') {
+                lineBuffer.push(indentationString + insertExp.expression)
+              }
+            }
           }
         }
       }
+
       lineBuffer.push(lineCode)
       Array.prototype.push.apply(lineBuffer, belowExps)
     }
 
     body = lineBuffer.join(util.LINE_BREAKER)
-  }
 
   snippet.bodyBlock = body
 }
 
 const genTestCase = function (pipeline, option) {
   const camelCaseName = getCamelCaseName(pipeline.name)
+  const caseName = pipeline.name
   delete pipeline.name
 
   // figure out code block indentation
@@ -280,11 +296,13 @@ const genTestCase = function (pipeline, option) {
   }
 
   const methodsName = []
-  pipeline.initSnippet = pretty.prettyCodeBlock(pipeline.initSnippet, indentation)
+  if (pipeline.initSnippet) {
+    pipeline.initSnippet = pretty.prettyCodeBlock(pipeline.initSnippet, indentation)
+  }
   const hash = {
     "name": camelCaseName,
-    "isDemo": false,
-    "methods": [] 
+    "methods": [],
+    "isGlobalInit": isInitMethod(caseName, option.globalInitNamePrefix)
   }
   for (let segName in pipeline) {
     if (pipeline.hasOwnProperty(segName)) {
@@ -347,8 +365,12 @@ const getCamelCaseName = function (name) {
   return camelCaseName
 }
 
-module.exports = {
-  test
+const isInitMethod = function (name, prefix) {
+  return name.startsWith(prefix)
 }
 
-test('../cssg-cases/Android')
+module.exports = {
+  build
+}
+
+// test('../cssg-cases/Android')

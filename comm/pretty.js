@@ -35,5 +35,6 @@ const getIndentationString = function (indentation) {
 }
 
 module.exports = {
-  prettyCodeBlock
+  prettyCodeBlock,
+  getIndentationString
 }
