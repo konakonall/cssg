@@ -9,21 +9,21 @@ const git = require('./comm/git')
 // 记录模版对应的代码缩进值
 const templateIndentation = {}
 
-const build = async function (projRoot) {
+const build = async function (projRoot, docSetSpecifiedRoot) {
   console.log('CSSG compile start:\r\n----------------- ')
 
   // load global config
   var globalConfigFile = path.join(projRoot, 'g.json')
   var testAll
-  var localRepoDir
+  var docSetRoot
 
   if (!fs.existsSync(globalConfigFile)) {
     globalConfigFile = path.join(projRoot, '../g.json')
     testAll = false
-    localRepoDir = path.join(projRoot, '../docRepo')
+    docSetRoot = path.join(projRoot, '../docRepo')
   } else {
     testAll = true
-    localRepoDir = path.join(projRoot, 'docRepo')
+    docSetRoot = path.join(projRoot, 'docRepo')
   }
 
   if (!fs.existsSync(globalConfigFile)) {
@@ -34,8 +34,13 @@ const build = async function (projRoot) {
   const global = JSON.parse(fs.readFileSync(globalConfigFile))
 
   // sync documents
-  // await git.syncRemoteRepo(global.docsRemoteRepo, localRepoDir)
-  const docsDir = path.join(localRepoDir, global.docRelativePath)
+  if (docSetSpecifiedRoot == null) {
+    await git.syncRemoteRepo(global.docSetRemoteGitUrl, docSetRoot)
+  } else {
+    docSetRoot = docSetSpecifiedRoot
+  }
+
+  const sdkDocSetRoot = path.join(docSetRoot, global.sdkDocSetRelativePath)
 
   const projs = []
   if (testAll) {
@@ -53,12 +58,12 @@ const build = async function (projRoot) {
 
   // do test
   for (var i in projs) {
-    await testOne(projs[i], docsDir, global)
+    await testOne(projs[i], sdkDocSetRoot, global)
   }
 
 }
 
-const testOne = async function (projRoot, docsDir, global) {
+const testOne = async function (projRoot, sdkDocSetRoot, global) {
   // load project config
   var configFile = path.join(projRoot, 'cssg.json')
   if (!fs.existsSync(configFile)) {
@@ -75,7 +80,7 @@ const testOne = async function (projRoot, docsDir, global) {
     return null
   }
   // document set directory
-  const targetDocsSetDir = path.join(docsDir, docRoot)
+  const targetDocSetDir = path.join(sdkDocSetRoot, docRoot)
 
   // test case destination dir
   const testCaseRoot = path.join(projRoot, config.compileDist || global.compileDist)
@@ -92,15 +97,17 @@ const testOne = async function (projRoot, docsDir, global) {
 
   // template defines
   var testcaseTpl = path.join(projRoot, config.testcaseTemplate)
-  const exclusiveTemplate = config.exclusiveTemplate || {}
   testcaseTpl = util.loadFileContent(testcaseTpl)
   mustache.parse(testcaseTpl)
 
-  // 表示什么分类的操作可以抽象出方法
-  const methodsCategory = config.methodsCategory || global.methodsCategory
-
   // 初始化代码块名字的前缀
   const globalInitNamePrefix = config.globalInitNamePrefix || global.globalInitNamePrefix
+
+  // 哪些代码不需要检查测试结果
+  const testResultFree = config.testResultFree || global.testResultFree
+
+  // 元数据
+  const testMetadata = config.testMetadata || {}
 
   // create destination dir if necessary
   if (fs.existsSync(testCaseRoot)) {
@@ -109,7 +116,7 @@ const testOne = async function (projRoot, docsDir, global) {
   fs.mkdirSync(testCaseRoot, { recursive: true })
 
   // lookup Documents
-  const documents = util.traverseFiles(targetDocsSetDir, global.docExtension)
+  const documents = util.traverseFiles(targetDocSetDir, global.docExtension)
   // 代码块名称通用前缀
   const snippetNameCommonPrefix = config.snippetNameCommonPrefix
   // 服务定义块的名字
@@ -120,7 +127,7 @@ const testOne = async function (projRoot, docsDir, global) {
   var initSnippet = {}
   for (var i in documents) {
     const subSnippets = await parser.parseDOC2Prototype(documents[i])
-    var initBlockIndex = -1
+    const matchedSnippets = []
     for (var j in subSnippets) {
       const snippet = subSnippets[j]
       if (snippetNameCommonPrefix && !snippet.name.startsWith(snippetNameCommonPrefix)) {
@@ -132,18 +139,16 @@ const testOne = async function (projRoot, docsDir, global) {
       }
 
       //  代码段处理
-      processSnippetBody(snippet, macro4doc, macro4test, config.beforeRun)
+      processSnippetBody(snippet, macro4doc, macro4test, config.beforeRun, testResultFree)
 
       // 初始化
       if (snippet.name == initBlockName) {
         initSnippet = snippet
-        initBlockIndex = j
+      } else {
+        matchedSnippets.push(snippet)
       }
     }
-    if (initBlockIndex >= 0) {
-      subSnippets.splice(initBlockIndex, 1)
-    } 
-    Array.prototype.push.apply(snippets, subSnippets)
+    Array.prototype.push.apply(snippets, matchedSnippets)
   }
 
   // 生成映射表
@@ -155,77 +160,67 @@ const testOne = async function (projRoot, docsDir, global) {
     }
   }
 
-  // generate test case by group
-  const groups = Object.assign({}, global.testGroup, config.testGroup || {})
-  const added = []
+  // 生成测试组
+  const groups = {}
+  config.testGroup = config.testGroup || {}
+  for (var groupName in global.testGroup) {
+    var subGroups = global.testGroup[groupName]
+    if (config.testGroup[groupName]) {
+      subGroups = Object.assign(subGroups, config.testGroup[groupName])
+      delete config.testGroup[groupName]
+    }
+    groups[groupName] = subGroups
+  }
+  Object.assign(groups, config.testGroup)
+  const usedSnppets = []
   for (var groupName in groups) {
-    if (groups.hasOwnProperty(groupName)) {
-      const group = groups[groupName]
-      const pipeline = {}
-
-      pipeline.name = groupName
-      pipeline.initSnippet = initSnippet.bodyBlock
-      var hasMethodList = false
-      for (var segName in group) {
-        if (group.hasOwnProperty(segName)) {
-          const segs = group[segName]
-          if (Array.isArray(segs)) {
-            // 方法列表
-            const gs = []
-            for (var i in segs) {
-              if (snippetNameDic.hasOwnProperty(segs[i])) {
-                hasMethodList = true
-                gs.push(snippetNameDic[segs[i]])
-                added.push([segs[i]])
-              }
-            }
-            pipeline[segName] = gs
-          } else {
-            pipeline[segName] = segs
-          }
-        }
-      }
-
-      if (hasMethodList) {
-        var tpl = testcaseTpl
-        if (exclusiveTemplate[groupName]) {
-          tpl = path.join(projRoot, exclusiveTemplate[groupName])
-          tpl = util.loadFileContent(tpl)
-        }
-  
-        genTestCase(pipeline, {
-          methodsCategory,
-          globalInitNamePrefix,
-          "testcaseTpl": tpl,
-          extension, 
-          testCaseRoot
-        })
+    var subGroups = groups[groupName]
+    for (var caseName in subGroups) {
+      if (Array.isArray(subGroups[caseName])) {
+        Array.prototype.push.apply(usedSnppets, subGroups[caseName])
       }
     }
   }
-  for (var i in added) {
-    delete snippetNameDic[added[i]]
+  for (var name in snippetNameDic) {
+    if (!usedSnppets.includes(name)) {
+      groups[name] = {}
+      groups[name][name] = [name]
+    }
   }
 
-  // generate remainning test case
-  for (var name in snippetNameDic) {
-    if (snippetNameDic.hasOwnProperty(name)) {
-      const snippet = snippetNameDic[name]
-
-      var tpl = testcaseTpl
-      if (exclusiveTemplate[snippet.name]) {
-        tpl = path.join(projRoot, exclusiveTemplate[snippet.name])
-        tpl = util.loadFileContent(tpl)
-      }
+  // 生成单元测试文件
+  for (var groupName in groups) {
+    if (groups.hasOwnProperty(groupName)) {
+      const group = groups[groupName]
       const pipeline = {
-        "steps": [snippet],
-        "name": snippet.name,
-        "initSnippet": initSnippet.bodyBlock
+        name: groupName,
+        initSnippet: initSnippet.bodyBlock
       }
+
+      for (var caseName in group) {
+        const testcase = group[caseName]
+
+        if (Array.isArray(testcase)) {
+          // 方法列表
+          const gs = []
+          var hasMethodList = false
+          for (var i in testcase) {
+            if (snippetNameDic.hasOwnProperty(testcase[i])) {
+              hasMethodList = true
+              gs.push(snippetNameDic[testcase[i]])
+            }
+          }
+          if (hasMethodList) {
+            pipeline[caseName] = gs
+          }
+        } else {
+          pipeline[caseName] = testcase
+        }
+      }
+
       genTestCase(pipeline, {
-        methodsCategory,
-        globalInitNamePrefix,
-        "testcaseTpl": tpl,
+        testMetadata,
+        testcaseTpl,
         extension, 
         testCaseRoot
       })
@@ -234,7 +229,7 @@ const testOne = async function (projRoot, docsDir, global) {
 
 }
 
-const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun) {
+const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun, testResultFreeCases) {
   var body = snippet.bodyBlock
 
   const lines = body.split(/(?:\r\n|\r|\n)/g)
@@ -245,7 +240,7 @@ const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun) 
       // 替换变量值
       for (const key in macro4doc) {
         if (macro4test[key]) {
-          lineCode = lineCode.replace(macro4doc[key], macro4test[key])
+          lineCode = lineCode.replace(new RegExp(macro4doc[key], 'g'), macro4test[key])
         }
       }
 
@@ -256,12 +251,23 @@ const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun) 
         if (insertExps) {
           for (var j in insertExps) {
             const insertExp = insertExps[j]
-            if (lineCode.trim() == insertExp.anchor) {
+            if (lineCode.trim() == insertExp.anchor || 
+                (insertExp.isRegex && lineCode.match(insertExp.anchor))) {
+              if (insertExp.type == 'assert' && testResultFreeCases.includes(snippet.name)) {
+                // 忽略结果的 case
+                continue
+              }
+              if (insertExp.excludes && insertExp.excludes.includes(snippet.name)) {
+                continue
+              }
               // 保持缩进
               var indentation = 0
               const matcher = lineCode.match("(\\s*).+\\s*")
               if (matcher) {
                 indentation = matcher[1].length
+              }
+              if (insertExp.indentation > 0) {
+                indentation += insertExp.indentation
               }
               const indentationString = pretty.getIndentationString(indentation)
               if (insertExp.align == 'below') {
@@ -300,42 +306,67 @@ const genTestCase = function (pipeline, option) {
     pipeline.initSnippet = pretty.prettyCodeBlock(pipeline.initSnippet, indentation)
   }
   const hash = {
-    "name": camelCaseName,
-    "methods": [],
-    "isGlobalInit": isInitMethod(caseName, option.globalInitNamePrefix)
+    name: camelCaseName,
+    methods: [],
+    setup: [],
+    teardown: [],
+    cases: []
   }
-  for (let segName in pipeline) {
-    if (pipeline.hasOwnProperty(segName)) {
-      const segs = pipeline[segName]
-      hash[segName] = []
-      if (Array.isArray(segs)) {
-        for (let i in segs) {
-          const snippet = segs[i]
-          const snippetContent = pretty.prettyCodeBlock(snippet.bodyBlock, indentation)
+  for (let key in pipeline) {
+    if (pipeline.hasOwnProperty(key)) {
+      const testcase = pipeline[key]
+      if (Array.isArray(testcase)) {
+        const caseSteps = []
+        for (let i in testcase) {
+          const snippet = testcase[i]
           const name = snippet.name
-          const o = {
-            name: getCamelCaseName(name),
-            snippet: snippetContent
-          }
-          if (!methodsName.includes(name) && option.methodsCategory.includes(segName)) {
+          const o = Object.assign({
+            name: getCamelCaseNameWithLowStart(name)
+          }, findMetadataForTestCase(option.testMetadata, name))
+          if (!methodsName.includes(name)) {
+            o.snippet = pretty.prettyCodeBlock(snippet.bodyBlock, indentation)
             hash.methods.push(o)
             methodsName.push(name)
           }
-          hash[segName].push(o)
+          if (key == 'setup') {
+            hash.setup.push(o)
+          } else if (key == 'teardown') {
+            hash.teardown.push(o)
+          } else {
+            caseSteps.push(o)
+          }
+        }
+        if (caseSteps.length > 0) {
+          hash.cases.push({
+            name: "test" + getCamelCaseName(key),
+            steps: caseSteps
+          })
         }
       } else {
-        hash[segName] = segs
+        hash[key] = testcase
       }
     }
   }
-  hash.hasSteps = hash.steps && hash.steps.length > 0
 
   const testCaseContent = mustache.render(option.testcaseTpl, hash)
 
-  const testCaseFile = path.join(option.testCaseRoot, camelCaseName + option.extension)
+  const testCaseFile = path.join(option.testCaseRoot, camelCaseName + "Test" + option.extension)
   util.saveFile(testCaseFile, testCaseContent)
   
   console.log('generate test case :', testCaseFile)
+}
+
+function findMetadataForTestCase(testMetadata, snippetName) {
+  const metadata = {}
+  for (var meta in testMetadata) {
+    if (testMetadata.hasOwnProperty(meta)) {
+      const caseList = testMetadata[meta]
+      if (caseList.includes(snippetName)) {
+        metadata[meta] = true
+      }
+    }
+  }
+  return metadata
 }
 
 function getSnippetIndentation(testcaseTpl) {
@@ -365,12 +396,24 @@ const getCamelCaseName = function (name) {
   return camelCaseName
 }
 
-const isInitMethod = function (name, prefix) {
-  return name.startsWith(prefix)
+const getCamelCaseNameWithLowStart = function (name) {
+  const array = name.split('-')
+  var camelCaseName = ''
+  for (var i in array) {
+    if (i == 0) {
+      camelCaseName = camelCaseName.concat(array[i].charAt(0).toLowerCase()
+       + array[i].substring(1))
+    } else {
+      camelCaseName = camelCaseName.concat(array[i].charAt(0).toUpperCase()
+      + array[i].substring(1))
+    }
+  }
+  return camelCaseName
 }
 
 module.exports = {
   build
 }
 
-// test('../cssg-cases/Android')
+// build(path.join(__dirname, '../cssg-cases/dotnet'), 
+// '/Users/wjielai/Workspace/cssg-cases/docRepo')

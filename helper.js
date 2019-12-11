@@ -58,7 +58,7 @@ const action  = args.action
 const projRoot = process.cwd()
 
 if ('tagging' == action) {
-  const docRoot = path.join(projRoot, args.dir)
+  const docRoot = args.dir
   tagDocuments(docRoot)
 } else if ('assemble' == action) {
   const docRoot = path.join(projRoot, args.dir)
