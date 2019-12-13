@@ -120,7 +120,7 @@ const genTestCase = function (pipeline, option) {
 }
 
 function getSnippetIndentation(testcaseTpl) {
-  const lines = testcaseTpl.split(/(?:\r\n|\r|\n)/g)
+  const lines = util.splitLines(testcaseTpl)
   var findMethodTag = false
   for (const i in lines) {
     const lineCode = lines[i]
@@ -178,7 +178,7 @@ const getCastForTest = function (testGroup) {
 }
 
 const compile = async function(projRoot) {
-  console.log('CSSG compile start:\r\n----------------- ')
+  console.log('CSSG compile start:\n----------------- ')
   // load project config
   const config = util.loadEntryConfig(projRoot, 'cssg.json')
   // load global config
@@ -377,7 +377,7 @@ const compile = async function(projRoot) {
     }
   }
 
-  console.log('----------------- \r\nCSSG compile end.')
+  console.log('----------------- \nCSSG compile end.')
 
 }
 

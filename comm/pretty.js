@@ -2,7 +2,7 @@ const util = require('./util')
 const path = require('path')
 
 const prettyCodeBlock = function (snippetBody, toIndentation) {
-  const lines = snippetBody.split(/(?:\r\n|\r|\n)/g)
+  const lines = util.splitLines(snippetBody)
 
   let startIndentation = -1
   var newSnippetBody = []

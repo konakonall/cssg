@@ -10,7 +10,7 @@ const git = require('./comm/git')
 const templateIndentation = {}
 
 const build = async function (projRoot, docSetSpecifiedRoot) {
-  console.log('CSSG compile start:\r\n----------------- ')
+  console.log('CSSG build start:\n----------------- ')
 
   // load global config
   var globalConfigFile = path.join(projRoot, 'g.json')
@@ -60,6 +60,8 @@ const build = async function (projRoot, docSetSpecifiedRoot) {
   for (var i in projs) {
     await testOne(projs[i], sdkDocSetRoot, global)
   }
+
+  console.log('CSSG build end:\n----------------- ')
 
 }
 
@@ -121,6 +123,8 @@ const testOne = async function (projRoot, sdkDocSetRoot, global) {
   const snippetNameCommonPrefix = config.snippetNameCommonPrefix
   // 服务定义块的名字
   const initBlockName = config.initSnippetName || global.initSnippetName
+  // 哪些case无法通过测试
+  const skipCases = config.skipCases || []
 
   // 抽取代码段
   const snippets = []
@@ -220,6 +224,7 @@ const testOne = async function (projRoot, sdkDocSetRoot, global) {
 
       genTestCase(pipeline, {
         testMetadata,
+        skipCases,
         testcaseTpl,
         extension, 
         testCaseRoot
@@ -232,7 +237,7 @@ const testOne = async function (projRoot, sdkDocSetRoot, global) {
 const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun, testResultFreeCases) {
   var body = snippet.bodyBlock
 
-  const lines = body.split(/(?:\r\n|\r|\n)/g)
+  const lines = util.splitLines(body)
     const lineBuffer = []
 
     for (const i in lines) {
@@ -328,12 +333,14 @@ const genTestCase = function (pipeline, option) {
             hash.methods.push(o)
             methodsName.push(name)
           }
-          if (key == 'setup') {
-            hash.setup.push(o)
-          } else if (key == 'teardown') {
-            hash.teardown.push(o)
-          } else {
-            caseSteps.push(o)
+          if (!option.skipCases.includes(name)) {
+            if (key == 'setup') {
+              hash.setup.push(o)
+            } else if (key == 'teardown') {
+              hash.teardown.push(o)
+            } else {
+              caseSteps.push(o)
+            }
           }
         }
         if (caseSteps.length > 0) {
@@ -370,7 +377,7 @@ function findMetadataForTestCase(testMetadata, snippetName) {
 }
 
 function getSnippetIndentation(testcaseTpl) {
-  const lines = testcaseTpl.split(/(?:\r\n|\r|\n)/g)
+  const lines = util.splitLines(testcaseTpl)
   var findMethodTag = false
   for (const i in lines) {
     const lineCode = lines[i]

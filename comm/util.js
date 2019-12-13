@@ -1,7 +1,11 @@
 var fs = require('fs');
 var path = require('path');
 
-const LINE_BREAKER = "\r\n"
+const LINE_BREAKER = "\n"
+
+const splitLines = function (body) {
+  return body.split(/(?:\r\n|\r|\n)/g)
+}
 
 const getSnippetsRoot = function (root) {
   return path.join(root, 'snippets')
@@ -66,5 +70,6 @@ module.exports = {
   traverseFiles,
   saveFile,
   loadFileContent,
+  splitLines,
   LINE_BREAKER
 }

@@ -51,21 +51,14 @@ const assemble = async function (docRoot, template) {
   util.saveFile(protoFile, codeContent)
 }
 
-const args = require('yargs').argv
 
-const action  = args.action
-
-const projRoot = process.cwd()
-
-if ('tagging' == action) {
-  const docRoot = args.dir
-  tagDocuments(docRoot)
-} else if ('assemble' == action) {
-  const docRoot = path.join(projRoot, args.dir)
-  const template = path.join(projRoot, args.template)
-  assemble(docRoot, template)
-} else if (action) {
-  console.error("Unknown Action:", action)
-} else {
-  console.error("Missing Action !")
-}
+const args = require('yargs')
+  .command('tag [docs]', 'add tag to docs', (yargs) => {
+    yargs
+      .require('docs', {
+        describe: 'docs to add tag'
+      })
+  }, (argv) => {
+    tagDocuments(argv.docs)
+  })
+  .argv
