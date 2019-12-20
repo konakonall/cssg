@@ -1,36 +1,47 @@
-const fs = require('fs')
-const path = require('path')
-const util = require('./comm/util')
-const parser = require('./comm/parser')
-const git = require('simple-git')
+const fs = require('fs-extra');
+var path = require('path');
+var parser = require('./comm/parser');
+const mustache = require('mustache');
+const util = require('./comm/util');
+const pretty = require('./comm/pretty');
+const git = require('./comm/git')
 
-const write = async function (projRoot) {
+const write = async function (projRoot, docSetSpecifiedRoot) {
+  console.log('CSSG write start:\n----------------- ')
+
   // load global config
   var globalConfigFile = path.join(projRoot, 'g.json')
   var writeAll
-  var localRepoRoot
+  var docSetRoot
 
   if (!fs.existsSync(globalConfigFile)) {
     globalConfigFile = path.join(projRoot, '../g.json')
     writeAll = false
-    localRepoRoot = path.join(projRoot, '../docRepo')
+    docSetRoot = path.join(projRoot, '../docRepo')
   } else {
     writeAll = true
-    localRepoRoot = path.join(projRoot, 'docRepo')
+    docSetRoot = path.join(projRoot, 'docRepo')
   }
+
   if (!fs.existsSync(globalConfigFile)) {
     console.warn('Global Config Not Found.')
     return
   }
-  var global = JSON.parse(fs.readFileSync(globalConfigFile))
 
-  await syncWithRemote(global.docsRemoteRepo, localRepoRoot)
-  const gitRepo = git(localRepoRoot).silent(false)
-  const docsDir = path.join(localRepoRoot, global.docRelativePath)
+  const global = JSON.parse(fs.readFileSync(globalConfigFile))
 
+  // sync documents
+  if (docSetSpecifiedRoot == null) {
+    await git.syncRemoteRepo(global.docSetRemoteGitUrl, docSetRoot)
+  } else {
+    docSetRoot = docSetSpecifiedRoot
+  }
+
+  const sdkDocSetRoot = path.join(docSetRoot, global.sdkDocSetRelativePath)
+
+  const projs = []
   if (writeAll) {
     var list = fs.readdirSync(projRoot)
-    const projs = []
     list.forEach(function(file) {
         file = path.resolve(projRoot, file)
         var stat = fs.statSync(file)
@@ -38,82 +49,142 @@ const write = async function (projRoot) {
           projs.push(file)
         }
     })
-    for (var i in projs) {
-      const changes = await writeSingleProj(projs[i], docsDir, global)
-      await addCommit(gitRepo, changes)
-    }
   } else {
-    const changes = await writeSingleProj(projRoot, docsDir, global)
-    await addCommit(gitRepo, changes)
+    projs.push(projRoot)
   }
+
+  // do write snippet back to doc
+  for (var i in projs) {
+    await writeSnippetBack(projs[i], sdkDocSetRoot, global)
+  }
+
+  console.log('CSSG write end:\n----------------- ')
+
 }
 
-const writeSingleProj = async function (projRoot, docsDir, global) {
+const writeSnippetBack = async function (projRoot, sdkDocSetRoot, global) {
   // load project config
-  var config = path.join(projRoot, 'cssg.json')
-  if (!fs.existsSync(config)) {
+  var configFile = path.join(projRoot, 'cssg.json')
+  if (!fs.existsSync(configFile)) {
+    console.log(`Cann't find cssg.json in ${projRoot}`)
     return null
   }
-  config = JSON.parse(fs.readFileSync(config))
-  if (!config.docRoot) {
-    console.warn("Please set \"docRoot\" in config file.")
-    return null
-  }
-  const currentSDKDocDir = path.join(docsDir, config.docRoot)
-  
-  const ext = config.docExtension || global.docExtension
-  const docs = util.traverseFiles(currentSDKDocDir, ext)
-  const snippetRoot = util.getSnippetsRoot(projRoot)
 
+  const config = util.loadEntryConfig(projRoot, 'cssg.json')
+  
+  // document file relative path
+  const docRoot = config.docRoot
+  if (!config.docRoot) {
+    console.warn(`Please set \"docRoot\" in ${configFile}.`)
+    return null
+  }
+  // document set directory
+  const targetDocSetDir = path.join(sdkDocSetRoot, docRoot)
+
+  // test case destination dir
+  const testCaseRoot = path.join(projRoot, config.compileDist || global.compileDist)
+  // source file extension
+  const extension = config.sourceExtension
+  
+  // macro defines
+  config.macro4doc = config.macro4doc || {}
+  config.macro4test = config.macro4test || {}
+  config.macro4doc.language = config.language
+  config.macro4test.language = config.language
+  const macro4doc = util.applyBaseConfig(config.macro4doc, global.macro4doc)
+  const macro4test = util.applyBaseConfig(config.macro4test, global.macro4test)
+
+  // comment delimiter
+  const delimiter = config.commentDelimiter || global.commentDelimiter
+  parser.setCommentDelimiter(delimiter)
+
+  // lookup Documents
+  const testCases = util.traverseFiles(testCaseRoot, extension)
+  // 代码块名称通用前缀
+  const snippetNameCommonPrefix = config.snippetNameCommonPrefix
+
+  // 抽取代码段
+  const snippetMap = {}
+  for (var i in testCases) {
+    const subSnippets = await parser.getSnippetsFromCase(testCases[i])
+    for (var j in subSnippets) {
+      const snippet = subSnippets[j]
+      if (snippetNameCommonPrefix) {
+        // 添加前缀
+        snippet.name = snippetNameCommonPrefix + snippet.name
+      }
+
+      //  代码段处理
+      // 1. 替换变量值
+      // 2. 去掉测试用的表达式，如断言
+      processSnippetBody(snippet, macro4doc, macro4test, config.beforeRun)
+
+      snippetMap[snippet.name] = snippet
+    }
+  }
+
+  const docs = util.traverseFiles(targetDocSetDir, "md")
   const changes = []
   for (var i in docs) {
     const newDoc = await parser.injectCodeSnippet2Doc(docs[i], function (snippetName) {
-      const file = util.getSnippetFile(snippetRoot, snippetName)
-      if (fs.existsSync(file)) {
-        return util.loadFileContent(file)
+      if (snippetMap.hasOwnProperty(snippetName)) {
+        return snippetMap[snippetName].bodyBlock
       }
       return null
     })
     changes.push(newDoc)
-
     console.log('write doc done :', newDoc)
   }
 
-  return {
-    language: config.language,
-    changeList: changes,
-    sdkDocDir: currentSDKDocDir
-  }
 }
 
-const syncWithRemote = async function (repo, localRoot) {
-  console.log('Syncing...')
+const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun) {
+  var body = snippet.bodyBlock
 
-  return new Promise((resolve, reject) => {
-    var gitRepo
-    if (!fs.existsSync(localRoot)) {
-      gitRepo = git().silent(false)
-      gitRepo.clone(repo, localRoot)
+  const lines = util.splitLines(body)
+  for(var i = lines.length - 1; i>=0; i--) {
+    if (lines[i].trim().length < 1) {
+      lines.pop()
     } else {
-      gitRepo = git(localRoot).silent(false)
+      break
     }
-    const workingBranch = 'cssg-working'
-    gitRepo
-      .branchLocal((error, summary) => {
-        if (summary && summary.branches && summary.branches[workingBranch]) {
-          // branch exist
-          gitRepo.checkout(workingBranch)
-        } else {
-          gitRepo.checkoutBranch(workingBranch, 'origin/master')
+  }
+  const lineBuffer = []
+
+  for (const i in lines) {
+    var lineCode = lines[i]
+    // 替换变量值
+    for (const key in macro4test) {
+      if (macro4test[key]) {
+        while (lineCode.indexOf(macro4test[key]) != -1) {
+          lineCode = lineCode.replace(macro4test[key], macro4doc[key]);
         }
-        gitRepo
-          .pull('origin', 'master', {'--rebase': 'true'})
-          .exec(() => {
-            console.log('Sync with remote end')
-            resolve(gitRepo)
-          })
-      })
-  })
+      }
+    }
+
+    // 去掉测试用的表达式
+    var skip = false
+    if (beforeRun) {
+      const insertExps = beforeRun.insert
+      if (insertExps) {
+        for (var j in insertExps) {
+          const insertExp = insertExps[j]
+          if (lineCode.trim() == insertExp.expression) {
+            skip = true
+            break
+          }
+        }
+      }
+    }
+
+    if (!skip) {
+      lineBuffer.push(lineCode)
+    }
+  }
+
+  body = lineBuffer.join(util.LINE_BREAKER)
+
+  snippet.bodyBlock = pretty.prettyCodeBlock(body, 0)
 }
 
 const addCommit = async function (gitRepo, changes) {
@@ -142,3 +213,6 @@ const addCommit = async function (gitRepo, changes) {
 module.exports = {
   write
 }
+
+// write(path.join(__dirname, '../cssg-cases/Java'), 
+// '/Users/wjielai/Workspace/cssg-cases/docRepo')
