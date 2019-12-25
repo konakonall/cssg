@@ -32,6 +32,7 @@ const write = async function (projRoot, docSetSpecifiedRoot) {
 
   // sync documents
   if (docSetSpecifiedRoot == null) {
+    console.info('Sync Docs from Remote.')
     await git.syncRemoteRepo(global.docSetRemoteGitUrl, docSetRoot)
   } else {
     docSetRoot = docSetSpecifiedRoot
@@ -93,6 +94,8 @@ const writeSnippetBack = async function (projRoot, sdkDocSetRoot, global) {
   config.macro4test.language = config.language
   const macro4doc = util.applyBaseConfig(config.macro4doc, global.macro4doc)
   const macro4test = util.applyBaseConfig(config.macro4test, global.macro4test)
+  delete macro4doc.language
+  delete macro4test.language
 
   // comment delimiter
   const delimiter = config.commentDelimiter || global.commentDelimiter
@@ -214,5 +217,5 @@ module.exports = {
   write
 }
 
-// write(path.join(__dirname, '../cssg-cases/Java'), 
+// write(path.join(__dirname, '../cssg-cases/Python'), 
 // '/Users/wjielai/Workspace/cssg-cases/docRepo')

@@ -124,6 +124,7 @@ const buildOne = async function (projRoot, sdkDocSetRoot, global) {
   const snippetNameCommonPrefix = config.snippetNameCommonPrefix
   // 服务定义块的名字
   const initBlockName = config.initSnippetName || global.initSnippetName
+  const initSnippetNoIdentation = config.initSnippetNoIdentation
   // 哪些case无法通过测试
   const skipCases = config.skipCases || []
 
@@ -228,7 +229,8 @@ const buildOne = async function (projRoot, sdkDocSetRoot, global) {
         skipCases,
         testcaseTpl,
         extension, 
-        testCaseRoot
+        testCaseRoot,
+        initSnippetNoIdentation
       })
     }
   }
@@ -251,6 +253,7 @@ const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun, 
   // 插入注释开始
   lineBuffer.push(parser.getSnippetBodyCommentStart(snippet.name))
 
+  const tailInsertExps = []
   for (const i in lines) {
     var lineCode = lines[i]
     // 替换变量值
@@ -267,15 +270,15 @@ const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun, 
       if (insertExps) {
         for (var j in insertExps) {
           const insertExp = insertExps[j]
+          if (insertExp.type == 'assert' && testResultFreeCases.includes(snippet.name)) {
+            // 忽略结果的 case
+            continue
+          }
+          if (insertExp.excludes && insertExp.excludes.includes(snippet.name)) {
+            continue
+          }
           if (lineCode.trim() == insertExp.anchor || 
               (insertExp.isRegex && lineCode.match(insertExp.anchor))) {
-            if (insertExp.type == 'assert' && testResultFreeCases.includes(snippet.name)) {
-              // 忽略结果的 case
-              continue
-            }
-            if (insertExp.excludes && insertExp.excludes.includes(snippet.name)) {
-              continue
-            }
             // 保持缩进
             var indentation = 0
             const matcher = lineCode.match("(\\s*).+\\s*")
@@ -291,6 +294,8 @@ const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun, 
             } else if (insertExp.align == 'above') {
               lineBuffer.push(indentationString + insertExp.expression)
             }
+          } else if (insertExp.align == 'tail') {
+            tailInsertExps[j] = insertExp.expression
           }
         }
       }
@@ -298,6 +303,15 @@ const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun, 
 
     lineBuffer.push(lineCode)
     Array.prototype.push.apply(lineBuffer, belowExps)
+  }
+
+  // 插入最尾的语句
+  if (tailInsertExps.length > 0) {
+    for (var i = 0; i < tailInsertExps.length; i++) {
+      if (tailInsertExps[i]) {
+        lineBuffer.push(tailInsertExps[i])
+      }
+    }
   }
 
   // 插入注释结束
@@ -321,7 +335,7 @@ const genTestCase = function (pipeline, option) {
   }
 
   const methodsName = []
-  if (pipeline.initSnippet) {
+  if (pipeline.initSnippet && !option.initSnippetNoIdentation) {
     pipeline.initSnippet = pretty.prettyCodeBlock(pipeline.initSnippet, indentation)
   }
   const hash = {

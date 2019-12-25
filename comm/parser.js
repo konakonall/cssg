@@ -193,6 +193,7 @@ const injectCodeSnippet2Doc = async function (doc, getSnippetContent) {
 // 辅助方法：在文档插入注释
 const namesMapping = {
   "GET Bucket（List Object）": "get-bucket",
+  "GET Bucket Object Versions": "list-object-versioning",
   "PUT Object": "put-object",
   "HEAD Object": "head-object",
   "GET Object": "get-object",
