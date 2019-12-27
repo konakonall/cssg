@@ -124,7 +124,6 @@ const buildOne = async function (projRoot, sdkDocSetRoot, global) {
   const snippetNameCommonPrefix = config.snippetNameCommonPrefix
   // 服务定义块的名字
   const initBlockName = config.initSnippetName || global.initSnippetName
-  const initSnippetNoIdentation = config.initSnippetNoIdentation
   // 哪些case无法通过测试
   const skipCases = config.skipCases || []
 
@@ -230,7 +229,9 @@ const buildOne = async function (projRoot, sdkDocSetRoot, global) {
         testcaseTpl,
         extension, 
         testCaseRoot,
-        initSnippetNoIdentation
+        initSnippetNoIdentation: config.initSnippetNoIdentation,
+        sourceNameUseUnderscore: config.sourceNameUseUnderscore,
+        methodNameBeginWithUpperCase: config.methodNameBeginWithUpperCase
       })
     }
   }
@@ -373,7 +374,7 @@ const genTestCase = function (pipeline, option) {
         }
         if (caseSteps.length > 0) {
           hash.cases.push({
-            name: "test" + getCamelCaseName(key),
+            name: (option.methodNameBeginWithUpperCase ? "Test" : "test") + getCamelCaseName(key),
             steps: caseSteps
           })
         }
@@ -385,7 +386,9 @@ const genTestCase = function (pipeline, option) {
 
   const testCaseContent = mustache.render(option.testcaseTpl, hash)
 
-  const testCaseFile = path.join(option.testCaseRoot, camelCaseName + "Test" + option.extension)
+  const fileName = option.sourceNameUseUnderscore ? getUnderscoreCaseName(caseName) + "_test" : 
+    camelCaseName + "Test"
+  const testCaseFile = path.join(option.testCaseRoot, fileName + option.extension)
   util.saveFile(testCaseFile, testCaseContent)
   
   console.log('generate test case :', testCaseFile)
@@ -419,6 +422,14 @@ function getSnippetIndentation(testcaseTpl) {
       }
     }
   }
+}
+
+const getUnderscoreCaseName = function (name) {
+  var newName = name
+  while (newName.indexOf('-') != -1) {
+    newName = newName.replace('-', '_');
+  }
+  return newName
 }
 
 const getCamelCaseName = function (name) {
