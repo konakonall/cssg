@@ -161,6 +161,9 @@ const processSnippetBody = function (snippet, macro4doc, macro4test, beforeRun) 
       if (macro4test[key]) {
         while (lineCode.indexOf(macro4test[key]) != -1) {
           lineCode = lineCode.replace(macro4test[key], macro4doc[key]);
+          if (macro4doc[key].includes(macro4test[key])) {
+            break
+          }
         }
       }
     }
@@ -217,5 +220,5 @@ module.exports = {
   write
 }
 
-// write(path.join(__dirname, '../cssg-cases/Python'), 
+// write(path.join(__dirname, '../cssg-cases/Javascript'), 
 // '/Users/wjielai/Workspace/cssg-cases/docRepo')
