@@ -7,7 +7,10 @@ const prettyCodeBlock = function (snippetBody, toIndentation) {
   let startIndentation = -1
   var newSnippetBody = []
   for (var i in lines) {
-    const codeLine = lines[i]
+    var codeLine = lines[i]
+    while (codeLine.indexOf('\t') != -1) {
+      codeLine = codeLine.replace('\t', util.TAB);
+    }
     const matcher = codeLine.match('(\\s*)(.*)')
     const indentation = matcher[1].length
     var newIndentation

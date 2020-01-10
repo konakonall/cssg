@@ -386,9 +386,11 @@ const genTestCase = function (pipeline, option) {
 
   const testCaseContent = mustache.render(option.testcaseTpl, hash)
 
-  const fileName = option.sourceNameUseUnderscore ? getUnderscoreCaseName(caseName) + "_test" : 
-    camelCaseName + "Test"
-  const testCaseFile = path.join(option.testCaseRoot, fileName + option.extension)
+  pipeline.distConfig = pipeline.distConfig || {}
+  const fileName = pipeline.distConfig.name || (option.sourceNameUseUnderscore ? 
+    getUnderscoreCaseName(caseName) + "_test" : camelCaseName + "Test")
+  const distRoot = pipeline.distConfig.root || option.testCaseRoot
+  const testCaseFile = path.join(distRoot, fileName + option.extension)
   util.saveFile(testCaseFile, testCaseContent)
   
   console.log('generate test case :', testCaseFile)

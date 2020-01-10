@@ -328,7 +328,7 @@ const getSnippetsFromDoc = async function (doc) {
         return
       }
       while (line.indexOf('\t') != -1) {
-        line = line.replace('\t', '    ');
+        line = line.replace('\t', util.TAB);
       }
 
       const isCodeBlockBackticks = parseCodeBlockBackticksInDoc(line) != null

@@ -103,6 +103,22 @@ const writeSnippetBack = async function (projRoot, sdkDocSetRoot, global) {
 
   // lookup Documents
   const testCases = util.traverseFiles(testCaseRoot, extension)
+  if (config.testGroup) {
+    const specRoots = []
+    for (var name in config.testGroup) {
+      const testcase = config.testGroup[name]
+      if (testcase.distConfig) {
+        const root = testcase.distConfig.root
+        if (root != testCaseRoot && specRoots.indexOf(root) < 0) {
+          specRoots.push(root)
+        }
+      }
+    }
+    for (var i in specRoots) {
+      Array.prototype.push.apply(testCases, util.traverseFiles(specRoots[i], extension))
+    }
+  }
+
   // 代码块名称通用前缀
   const snippetNameCommonPrefix = config.snippetNameCommonPrefix
 

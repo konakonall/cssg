@@ -2,6 +2,8 @@ var fs = require('fs');
 var path = require('path');
 
 const LINE_BREAKER = "\n"
+const TAB = "  "
+const TAB_SIZE = 2
 
 const splitLines = function (body) {
   return body.split(/(?:\r\n|\r|\n)/g)
@@ -71,5 +73,6 @@ module.exports = {
   saveFile,
   loadFileContent,
   splitLines,
-  LINE_BREAKER
+  LINE_BREAKER,
+  TAB
 }
