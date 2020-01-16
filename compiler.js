@@ -169,7 +169,7 @@ const buildOne = async function (projRoot, sdkDocSetRoot, global) {
   const groups = {}
   config.testGroup = config.testGroup || {}
   for (var groupName in global.testGroup) {
-    var subGroups = global.testGroup[groupName]
+    var subGroups = Object.assign({}, global.testGroup[groupName])
     if (config.testGroup[groupName]) {
       subGroups = Object.assign(subGroups, config.testGroup[groupName])
       delete config.testGroup[groupName]
@@ -229,6 +229,7 @@ const buildOne = async function (projRoot, sdkDocSetRoot, global) {
         testcaseTpl,
         extension, 
         testCaseRoot,
+        projRoot,
         initSnippetNoIdentation: config.initSnippetNoIdentation,
         sourceNameUseUnderscore: config.sourceNameUseUnderscore,
         methodNameBeginWithUpperCase: config.methodNameBeginWithUpperCase
@@ -389,7 +390,12 @@ const genTestCase = function (pipeline, option) {
   pipeline.distConfig = pipeline.distConfig || {}
   const fileName = pipeline.distConfig.name || (option.sourceNameUseUnderscore ? 
     getUnderscoreCaseName(caseName) + "_test" : camelCaseName + "Test")
-  const distRoot = pipeline.distConfig.root || option.testCaseRoot
+  var distRoot;
+  if (pipeline.distConfig.root) {
+    distRoot = path.join(option.projRoot, pipeline.distConfig.root)
+  } else {
+    distRoot = option.testCaseRoot
+  }
   const testCaseFile = path.join(distRoot, fileName + option.extension)
   util.saveFile(testCaseFile, testCaseContent)
   
@@ -463,5 +469,5 @@ module.exports = {
   build
 }
 
-// build(path.join(__dirname, '../cssg-cases/Java'), 
+// build(path.join(__dirname, '../cssg-cases'), 
 // '/Users/wjielai/Workspace/cssg-cases/docRepo')
