@@ -1,0 +1,184 @@
+{
+  "docExtension": ".md",
+
+  "commentDelimiter": ["//", ""],
+  "exampleTemplate": "Example.t",
+  "langs": {
+    "python": {
+      "commentDelimiter": ["#", ""],
+      "sourceExtension": ".py"
+    },
+    "objc": {
+      "snippetNameCommonPrefix": "objc-",
+      "sourceExtension": ".m"
+    },
+    "swift": {
+      "snippetNameCommonPrefix": "swift-",
+      "sourceExtension": ".swift"
+    },
+    "java": {
+      "sourceExtension": ".java"
+    },
+    "go": {
+      "sourceExtension": ".go"
+    },
+    "dotnet": {
+      "sourceExtension": ".cs"
+    },
+    "node": {
+      "sourceExtension": ".js"
+    },
+    "js": {
+      "sourceExtension": ".js"
+    },
+    "php": {
+      "sourceExtension": ".php"
+    }
+  },
+
+  "macro4example": {
+    "secretId": "COS_SECRETID",
+    "secretKey": "COS_SECRETKEY",
+
+    "appId": "1250000000",
+    "uin": "100000000001",
+    "region": "COS_REGION",
+    "bucket": "examplebucket-",
+    "copySourceBucket": "sourcebucket-",
+    "replicationDestBucket":"destinationbucket-",
+    "object": "exampleobject",
+
+    "eTag": "exampleETag",
+    "uploadId": "exampleUploadId"
+  },
+  "macro4test": {
+    "appId": "1253653367",
+    "uin": "1278687956",
+    "region": "ap-guangzhou",
+    "bucket": "bucket-cssg-test-${config.language}-",
+    "copySourceBucket":"bucket-cssg-source-",
+    "replicationDestBucket":"bucket-cssg-assist-",
+    "object": "object4${config.language}"
+  },
+
+  "groups": {
+    "bucket": [
+      "put-bucket",
+      "head-bucket",
+      "delete-bucket"
+    ],
+
+    "list-Object": [
+      "get-bucket",
+      "list-object-versioning"
+    ],
+    
+    "bucket-ACL": [
+      "put-bucket-acl",
+      "get-bucket-acl"
+    ],
+    "bucket-policy": [
+      "put-bucket-policy",
+      "get-bucket-policy",
+      "delete-bucket-policy"
+    ],
+    "bucket-CORS": [
+      "put-bucket-cors",
+      "get-bucket-cors",
+      "option-object",
+      "delete-bucket-cors"
+    ],
+    "bucket-lifecycle": [
+      "put-bucket-lifecycle",
+      "get-bucket-lifecycle",
+      "delete-bucket-lifecycle"
+    ],
+
+    "bucket-replication-and-versioning": [
+      "put-bucket-versioning",
+      "get-bucket-versioning",
+      "put-bucket-replication",
+      "get-bucket-replication",
+      "delete-bucket-replication"
+    ],
+
+    "bucket-tagging": [
+      "put-bucket-tagging",
+      "get-bucket-tagging",
+      "delete-bucket-tagging"
+    ],
+
+    "bucket-logging": [
+      "put-bucket-logging",
+      "get-bucket-logging"
+    ],
+
+    "bucket-domain": [
+      "put-bucket-domain",
+      "get-bucket-domain"
+    ],
+
+    "bucket-website": [
+      "put-bucket-website",
+      "get-bucket-website",
+      "delete-bucket-website"
+    ],
+
+    "bucket-inventory": [
+      "put-bucket-inventory",
+      "get-bucket-inventory",
+      "delete-bucket-inventory"
+    ],
+
+    "object": [
+      "put-object",
+      "head-object",
+      "get-object",
+      "get-presign-download-url",
+      "get-presign-upload-url",
+      "delete-object",
+      "delete-multi-object",
+      "post-object",
+      "restore-object"
+    ],
+    
+    "object-ACL": [
+      "put-object-acl",
+      "get-object-acl"
+    ],
+
+    "object-multi-upload": [
+      "init-multi-upload",
+      "list-multi-upload",
+      "upload-part",
+      "list-parts",
+      "complete-multi-upload"
+    ],
+
+    "object-abort-multi-upload": [
+      "init-multi-upload",
+      "upload-part",
+      "abort-multi-upload"
+    ],
+
+    "object-transfer": [
+      "transfer-upload-object",
+      "transfer-download-object",
+      "transfer-copy-object",
+      "batch-upload-objects"
+    ],
+
+    "object-copy": [
+      "copy-object",
+      "init-multi-upload",
+      "upload-part-copy",
+      "complete-multi-upload"
+    ],
+
+    "get-service": [
+      "get-service",
+      "get-regional-service",
+      "get-authorization"
+    ]
+  }
+}
