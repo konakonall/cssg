@@ -2,11 +2,13 @@
   "docExtension": ".md",
 
   "commentDelimiter": ["//", ""],
-  "exampleTemplate": "Example.t",
+  "sourceFileNamingConvention": "upper-camel",
+  "methodNamingConvention": "lower-camel",
+  "classNamingConvention": "upper-camel",
+
   "langs": {
-    "python": {
-      "commentDelimiter": ["#", ""],
-      "sourceExtension": ".py"
+    "android": {
+      "sourceExtension": ".java"
     },
     "objc": {
       "snippetNameCommonPrefix": "objc-",
@@ -20,7 +22,9 @@
       "sourceExtension": ".java"
     },
     "go": {
-      "sourceExtension": ".go"
+      "sourceExtension": ".go",
+      "sourceFileNamingConvention": "under-score",
+      "methodNamingConvention": "upper-camel"
     },
     "dotnet": {
       "sourceExtension": ".cs"
@@ -33,6 +37,10 @@
     },
     "php": {
       "sourceExtension": ".php"
+    },
+    "python": {
+      "commentDelimiter": ["#", ""],
+      "sourceExtension": ".py"
     }
   },
 

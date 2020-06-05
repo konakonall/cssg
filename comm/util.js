@@ -64,6 +64,44 @@ const loadFileContent = function (path) {
   return fs.readFileSync(path, 'utf-8')
 }
 
+
+const getSnippetIndentation = function (template) {
+  const lines = splitLines(template)
+  var findMethodTag = false
+  for (const i in lines) {
+    const lineCode = lines[i]
+    if (!findMethodTag) {
+      findMethodTag = lineCode.match("(\\s*){{2,3}#methods}{2,3}\\s*")
+    }
+    if (findMethodTag) {
+      const matcher = lineCode.match("(\\s*){{2,3}snippet}{2,3}\\s*")
+      if (matcher) {
+        return matcher[1].length
+      }
+    }
+  }
+}
+
+const getNameByConvension = function (name, convension) {
+  const array = name.split('-')
+  var newName = ''
+  for (var i in array) {
+    if (convension == 'lower-camel' && i == 0) {
+      newName = newName.concat(array[i].charAt(0).toLowerCase()
+        + array[i].substring(1))
+    } else if (convension == 'lower-camel' || convension == 'upper-camel') {
+      newName = newName.concat(array[i].charAt(0).toUpperCase()
+        + array[i].substring(1))
+    } else if (convension == 'under-score') {
+      if (i > 0) {
+        newName = newName.concat('_')
+      }
+      newName = newName.concat(array[i].toLowerCase())
+    }
+  }
+  return newName
+}
+
 module.exports = {
   getSnippetsRoot,
   getSnippetFile,
@@ -73,6 +111,8 @@ module.exports = {
   saveFile,
   loadFileContent,
   splitLines,
+  getNameByConvension,
+  getSnippetIndentation,
   LINE_BREAKER,
   TAB
 }

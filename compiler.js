@@ -5,15 +5,14 @@ const mustache = require('mustache');
 const util = require('./comm/util');
 const pretty = require('./comm/pretty');
 
-// 记录模版对应的代码缩进值
-const templateIndentation = {}
-
 /**
  * 使用文档里的代码片段生成示例代码文件 
  * @param {*} docSetRoot  
  * @param {*} destination  
+ * @param {*} lang  
+ * @param {*} template  
  */
-const build = async function (docSetRoot, destination, lang) {
+const build = async function (docSetRoot, destination, lang, template) {
   console.log('CSSG Compiler start:\n----------------- ')
 
   // 全局配置文件
@@ -31,16 +30,16 @@ const build = async function (docSetRoot, destination, lang) {
     console.warn(`Error: Unrecognize language:  ${lang}`)
     return
   }
-  const config = util.applyBaseConfig(pl, global)
+  const config = Object.assign(pl, global)
   console.log('CSSG Compiler load config :', config)
 
-  await buildOne(docSetRoot, config, destination)
+  await extractAll(docSetRoot, config, destination, template)
 
   console.log('CSSG Compiler end:\n----------------- ')
 
 }
 
-const buildOne = async function (sdkDocSetRoot, config, destination) {
+const extractAll = async function (sdkDocSetRoot, config, destination, template) {
   // create destination dir if necessary
   if (fs.existsSync(destination)) {
     fs.removeSync(destination)
@@ -48,14 +47,10 @@ const buildOne = async function (sdkDocSetRoot, config, destination) {
   fs.mkdirSync(destination, { recursive: true })
 
   // lookup Documents
-  const documents = util.traverseFiles(sdkDocSetRoot, global.docExtension)
-
-  // source file extension
-  const extension = config.sourceExtension
+  const documents = util.traverseFiles(sdkDocSetRoot, config.docExtension)
 
   // 抽取代码段
   const snippets = []
-  var initSnippet = {}
   for (var i in documents) {
     const subSnippets = await parser.getSnippetsFromDoc(documents[i])
     const matchedSnippets = []
@@ -75,15 +70,13 @@ const buildOne = async function (sdkDocSetRoot, config, destination) {
     }
   }
 
-  // 生成示例单元
-  const groups = {}
-  for (var groupName in global.groups) {
-    groups[groupName] = global.groups[groupName]
-  }
+  // template file content
+  const templateContent = util.loadFileContent(template)
+  // 记录模版对应的代码缩进值
+  const indentation = util.getSnippetIndentation(templateContent)
 
-  // 生成示例文件
-  for (var groupName in groups) {
-    const group = groups[groupName]
+  for (var groupName in config.groups) {
+    const group = config.groups[groupName]
     const pipeline = {
       name: groupName
     }
@@ -95,167 +88,70 @@ const buildOne = async function (sdkDocSetRoot, config, destination) {
           gs.push(snippetNameDic[group[i]])
         }
       }
-      pipeline[caseName] = gs
+      pipeline[groupName] = gs
     } else {
-      pipeline[caseName] = snippetNameDic[group]
+      pipeline[groupName] = [snippetNameDic[group]]
     }
 
-    genExample(pipeline, {
-      testMetadata,
-      skipCases,
-      testcaseTpl,
-      extension, 
-      testCaseRoot,
-      projRoot,
-      initSnippetNoIdentation: config.initSnippetNoIdentation,
-      sourceNameUseUnderscore: config.sourceNameUseUnderscore,
-      methodNameBeginWithUpperCase: config.methodNameBeginWithUpperCase
+    // 生成示例文件
+    extractExample(pipeline, {
+      template: templateContent,
+
+      sourceExtension: config.sourceExtension, 
+      indentation,
+      destination,
+      
+      sourceFileNamingConvention: config.sourceFileNamingConvention, 
+      methodNamingConvention: config.methodNamingConvention, 
+      classNamingConvention: config.classNamingConvention
     })
   }
 
 }
 
-const genExample = function (pipeline, option) {
-  const camelCaseName = getCamelCaseName(pipeline.name)
+const extractExample = function (pipeline, option) {
+  const className = util.getNameByConvension(pipeline.name, option.classNamingConvention)
+
   const caseName = pipeline.name
   delete pipeline.name
 
-  // figure out code block indentation
-  var indentation = templateIndentation[option.testcaseTpl]
-  if (!indentation) {
-    indentation = getSnippetIndentation(option.testcaseTpl)
-    templateIndentation[option.testcaseTpl] = indentation
+  const values = {
+    name: className,
+    methods: []
   }
 
-  const methodsName = []
-  if (pipeline.initSnippet && !option.initSnippetNoIdentation) {
-    pipeline.initSnippet = pretty.prettyCodeBlock(pipeline.initSnippet, indentation)
-  }
-  const hash = {
-    name: camelCaseName,
-    methods: [],
-    setup: [],
-    teardown: [],
-    cases: []
-  }
   for (let key in pipeline) {
     if (pipeline.hasOwnProperty(key)) {
-      const testcase = pipeline[key]
-      if (Array.isArray(testcase)) {
-        const caseSteps = []
-        for (let i in testcase) {
-          const snippet = testcase[i]
+      const gs = pipeline[key]
+      if (Array.isArray(gs)) {
+        for (let i in gs) {
+          const snippet = gs[i]
           const name = snippet.name
-          const o = Object.assign({
-            name: getCamelCaseNameWithLowStart(name)
-          }, findMetadataForTestCase(option.testMetadata, name))
-          if (!methodsName.includes(name)) {
-            o.snippet = pretty.prettyCodeBlock(snippet.bodyBlock, indentation)
-            hash.methods.push(o)
-            methodsName.push(name)
+          const methodObj = {
+            name: util.getNameByConvension(name, option.methodNamingConvention)
           }
-          if (!option.skipCases.includes(name)) {
-            if (key == 'setup') {
-              hash.setup.push(o)
-            } else if (key == 'teardown') {
-              hash.teardown.push(o)
-            } else {
-              caseSteps.push(o)
-            }
-          }
+          methodObj.snippet = pretty.prettyCodeBlock(snippet.bodyBlock, option.indentation)
+          values.methods.push(methodObj)
         }
-        if (caseSteps.length > 0) {
-          hash.cases.push({
-            name: (option.methodNameBeginWithUpperCase ? "Test" : "test") + getCamelCaseName(key),
-            steps: caseSteps
-          })
-        }
-      } else {
-        hash[key] = testcase
       }
     }
   }
 
-  const testCaseContent = mustache.render(option.testcaseTpl, hash)
+  const code = mustache.render(option.template, values)
 
-  pipeline.distConfig = pipeline.distConfig || {}
-  const fileName = pipeline.distConfig.name || (option.sourceNameUseUnderscore ? 
-    getUnderscoreCaseName(caseName) + "_test" : camelCaseName + "Test")
-  var distRoot;
-  if (pipeline.distConfig.root) {
-    distRoot = path.join(option.projRoot, pipeline.distConfig.root)
-  } else {
-    distRoot = option.testCaseRoot
-  }
-  const testCaseFile = path.join(distRoot, fileName + option.extension)
-  util.saveFile(testCaseFile, testCaseContent)
+  const sourceFileName = util.getNameByConvension(caseName, option.sourceFileNamingConvention)
+  const sourceFile = path.join(option.destination, sourceFileName + option.sourceExtension)
+  util.saveFile(sourceFile, code)
   
-  console.log('generate test case :', testCaseFile)
-}
-
-function findMetadataForTestCase(testMetadata, snippetName) {
-  const metadata = {}
-  for (var meta in testMetadata) {
-    if (testMetadata.hasOwnProperty(meta)) {
-      const caseList = testMetadata[meta]
-      if (caseList.includes(snippetName)) {
-        metadata[meta] = true
-      }
-    }
-  }
-  return metadata
-}
-
-function getSnippetIndentation(testcaseTpl) {
-  const lines = util.splitLines(testcaseTpl)
-  var findMethodTag = false
-  for (const i in lines) {
-    const lineCode = lines[i]
-    if (!findMethodTag) {
-      findMethodTag = lineCode.match("(\\s*){{2,3}#methods}{2,3}\\s*")
-    }
-    if (findMethodTag) {
-      const matcher = lineCode.match("(\\s*){{2,3}snippet}{2,3}\\s*")
-      if (matcher) {
-        return matcher[1].length
-      }
-    }
-  }
-}
-
-const getUnderscoreCaseName = function (name) {
-  var newName = name
-  while (newName.indexOf('-') != -1) {
-    newName = newName.replace('-', '_');
-  }
-  return newName
-}
-
-const getCamelCaseName = function (name) {
-  const array = name.split('-')
-  var camelCaseName = ''
-  for (var i in array) {
-    camelCaseName = camelCaseName.concat(array[i].charAt(0).toUpperCase()
-       + array[i].substring(1))
-  }
-  return camelCaseName
-}
-
-const getCamelCaseNameWithLowStart = function (name) {
-  const array = name.split('-')
-  var camelCaseName = ''
-  for (var i in array) {
-    if (i == 0) {
-      camelCaseName = camelCaseName.concat(array[i].charAt(0).toLowerCase()
-       + array[i].substring(1))
-    } else {
-      camelCaseName = camelCaseName.concat(array[i].charAt(0).toUpperCase()
-      + array[i].substring(1))
-    }
-  }
-  return camelCaseName
+  console.log('generate souce file :', sourceFile)
 }
 
 module.exports = {
   build
 }
+
+const docsetRoot = "/Users/laiwenjie/workspace/qcloud-documents/product/存储与CDN/对象存储\ 4.0/SDK文档/Android\ SDK"
+const lang = "android"
+const template = "/Users/laiwenjie/workspace/cssg-cases/Android/TestCase.t"
+
+build(docsetRoot, path.join(process.cwd(), "example"), lang, template)
