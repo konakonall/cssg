@@ -70,123 +70,359 @@
   },
 
   "groups": {
-    "bucket": [
-      "put-bucket",
-      "head-bucket",
-      "delete-bucket"
-    ],
+    "put-bucket": {
+      "methods": [
+        {
+          "name": "put-bucket",
+          "desc": "创建存储桶"
+        }
+      ]
+    },
+    "head-bucket": {
+      "methods": [
+        {
+          "name": "head-bucket",
+          "desc": "获取存储桶信息"
+        }
+      ]
+    },
+    "delete-bucket": {
+      "methods": [
+        {
+          "name": "delete-bucket",
+          "desc": "删除存储桶"
+        }
+      ]
+    },
+    "list-Objects": {
+      "methods": [
+        {
+          "name": "get-bucket",
+          "desc": "获取对象列表"
+        }, {
+          "name": "list-object-versioning",
+          "desc": "获取对象多版本列表"
+        }
+      ]
+    },
 
-    "list-Object": [
-      "get-bucket",
-      "list-object-versioning"
-    ],
-    
-    "bucket-ACL": [
-      "put-bucket-acl",
-      "get-bucket-acl"
-    ],
-    "bucket-policy": [
-      "put-bucket-policy",
-      "get-bucket-policy",
-      "delete-bucket-policy"
-    ],
-    "bucket-CORS": [
-      "put-bucket-cors",
-      "get-bucket-cors",
-      "option-object",
-      "delete-bucket-cors"
-    ],
-    "bucket-lifecycle": [
-      "put-bucket-lifecycle",
-      "get-bucket-lifecycle",
-      "delete-bucket-lifecycle"
-    ],
+    "bucket-ACL": {
+      "methods": [
+        {
+          "name": "put-bucket-acl",
+          "desc": "设置存储桶 ACL"
+        }, {
+          "name": "get-bucket-acl",
+          "desc": "获取存储桶 ACL"
+        }
+      ]
+    },
+    "bucket-policy": {
+      "methods": [
+        {
+          "name": "put-bucket-policy",
+          "desc": "设置存储桶 Policy"
+        }, {
+          "name": "get-bucket-policy",
+          "desc": "获取存储桶 Policy"
+        }, {
+          "name": "delete-bucket-policy",
+          "desc": "删除存储桶 Policy"
+        }
+      ]
+    },
+    "bucket-CORS": {
+      "methods": [
+        {
+          "name": "put-bucket-cors",
+          "desc": "设置存储桶跨域规则"
+        }, {
+          "name": "get-bucket-cors",
+          "desc": "获取存储桶跨域规则"
+        }, {
+          "name": "option-object",
+          "desc": "实现 Object 跨域访问配置的预请求"
+        }, {
+          "name": "delete-bucket-cors",
+          "desc": "删除存储桶跨域规则"
+        }
+      ]
+    },
+    "bucket-lifecycle": {
+      "methods": [
+        {
+          "name": "put-bucket-lifecycle",
+          "desc": "设置存储桶生命周期"
+        }, {
+          "name": "get-bucket-lifecycle",
+          "desc": "获取存储桶生命周期"
+        }, {
+          "name": "delete-bucket-lifecycle",
+          "desc": "删除存储桶生命周期"
+        }
+      ]
+    },
+    "bucket-replication": {
+      "methods": [
+        {
+          "name": "put-bucket-replication",
+          "desc": "设置存储桶跨地域复制规则"
+        }, {
+          "name": "get-bucket-replication",
+          "desc": "获取存储桶跨地域复制规则"
+        }, {
+          "name": "delete-bucket-replication",
+          "desc": "删除存储桶跨地域复制规则"
+        }
+      ]
+    },
+    "bucket--versioning": {
+      "methods": [
+        {
+          "name": "put-bucket-versioning",
+          "desc": "开启存储桶多版本"
+        }, {
+          "name": "get-bucket-versioning",
+          "desc": "获取存储桶多版本状态"
+        }
+      ]
+    },
+    "bucket-tagging": {
+      "methods": [
+        {
+          "name": "put-bucket-tagging",
+          "desc": "设置存储桶标签"
+        }, {
+          "name": "get-bucket-tagging",
+          "desc": "获取存储桶标签"
+        }, {
+          "name": "delete-bucket-tagging",
+          "desc": "删除存储桶标签"
+        }
+      ]
+    },
+    "bucket-logging": {
+      "methods": [
+        {
+          "name": "put-bucket-logging",
+          "desc": "开启存储桶日志服务"
+        }, {
+          "name": "get-bucket-logging",
+          "desc": "获取存储桶日志服务"
+        }
+      ]
+    },
+    "bucket-domain": {
+      "methods": [
+        {
+          "name": "put-bucket-domain",
+          "desc": "设置存储桶源站"
+        }, {
+          "name": "get-bucket-domain",
+          "desc": "获取存储桶源站"
+        }
+      ]
+    },
+    "bucket-website": {
+      "methods": [
+        {
+          "name": "put-bucket-website",
+          "desc": "设置存储桶静态网站"
+        }, {
+          "name": "get-bucket-website",
+          "desc": "获取存储桶静态网站"
+        }, {
+          "name": "delete-bucket-website",
+          "desc": "删除存储桶静态网站"
+        }
+      ]
+    },
+    "bucket-inventory": {
+      "methods": [
+        {
+          "name": "put-bucket-inventory",
+          "desc": "设置存储桶清单任务"
+        }, {
+          "name": "get-bucket-inventory",
+          "desc": "获取存储桶清单任务"
+        }, {
+          "name": "delete-bucket-inventory",
+          "desc": "删除存储桶清单任务"
+        }
+      ]
+    },
 
-    "bucket-replication-and-versioning": [
-      "put-bucket-versioning",
-      "get-bucket-versioning",
-      "put-bucket-replication",
-      "get-bucket-replication",
-      "delete-bucket-replication"
-    ],
-
-    "bucket-tagging": [
-      "put-bucket-tagging",
-      "get-bucket-tagging",
-      "delete-bucket-tagging"
-    ],
-
-    "bucket-logging": [
-      "put-bucket-logging",
-      "get-bucket-logging"
-    ],
-
-    "bucket-domain": [
-      "put-bucket-domain",
-      "get-bucket-domain"
-    ],
-
-    "bucket-website": [
-      "put-bucket-website",
-      "get-bucket-website",
-      "delete-bucket-website"
-    ],
-
-    "bucket-inventory": [
-      "put-bucket-inventory",
-      "get-bucket-inventory",
-      "delete-bucket-inventory"
-    ],
-
-    "object": [
-      "put-object",
-      "head-object",
-      "get-object",
-      "get-presign-download-url",
-      "get-presign-upload-url",
-      "delete-object",
-      "delete-multi-object",
-      "post-object",
-      "restore-object"
-    ],
-    
-    "object-ACL": [
-      "put-object-acl",
-      "get-object-acl"
-    ],
-
-    "object-multi-upload": [
-      "init-multi-upload",
-      "list-multi-upload",
-      "upload-part",
-      "list-parts",
-      "complete-multi-upload"
-    ],
-
-    "object-abort-multi-upload": [
-      "init-multi-upload",
-      "upload-part",
-      "abort-multi-upload"
-    ],
-
-    "object-transfer": [
-      "transfer-upload-object",
-      "transfer-download-object",
-      "transfer-copy-object",
-      "batch-upload-objects"
-    ],
-
-    "object-copy": [
-      "copy-object",
-      "init-multi-upload",
-      "upload-part-copy",
-      "complete-multi-upload"
-    ],
-
-    "get-service": [
-      "get-service",
-      "get-regional-service",
-      "get-authorization"
-    ]
+    "put-object": {
+      "methods": [
+        {
+          "name": "put-object",
+          "desc": "简单上传对象"
+        }
+      ]
+    },
+    "head-object": {
+      "methods": [
+        {
+          "name": "head-object",
+          "desc": "获取对象信息"
+        }
+      ]
+    },
+    "get-object": {
+      "methods":  [
+        {
+          "name": "get-object",
+          "desc": "下载对象"
+        }
+      ]
+    },
+    "object-presign-url": {
+      "methods": [
+        {
+          "name": "get-presign-download-url",
+          "desc": "获取预签名下载链接"
+        },
+        {
+          "name": "get-presign-upload-url",
+          "desc": "获取预签名上传链接"
+        }
+      ]
+    },
+    "delete-object": {
+      "methods": [
+        {
+          "name": "delete-object",
+          "desc": "删除对象"
+        },
+        {
+          "name": "delete-multi-object",
+          "desc": "删除多个对象"
+        }
+      ]
+    },
+    "post-object": {
+      "methods": [
+        {
+          "name": "post-object",
+          "desc": "POST 方式上传对象"
+        }
+      ]
+    },
+    "restore-object": {
+      "methods": [
+        {
+          "name": "restore-object",
+          "desc": "恢复归档对象"
+        }
+      ]
+    },
+    "object-ACL": {
+      "methods": [
+        {
+          "name": "put-object-acl",
+          "desc": "设置对象 ACL"
+        },
+        {
+          "name": "get-object-acl",
+          "desc": "获取对象 ACL"
+        }
+      ]
+    },
+    "multi-parts-upload-object": {
+      "methods": [
+        {
+          "name": "init-multi-upload",
+          "desc": "初始化分片上传"
+        },
+        {
+          "name": "list-multi-upload",
+          "desc": "列出所有未完成的分片上传任务"
+        },
+        {
+          "name": "upload-part",
+          "desc": "上传一个分片"
+        },
+        {
+          "name": "list-parts",
+          "desc": "列出已上传的分片"
+        },
+        {
+          "name": "complete-multi-upload",
+          "desc": "完成分片上传任务"
+        }
+      ]
+    },
+    "abort-multi-parts-upload": {
+      "methods": [
+        {
+          "name": "init-multi-upload",
+          "desc": "初始化分片上传"
+        },
+        {
+          "name": "abort-multi-upload",
+          "desc": "终止分片上传任务"
+        }
+      ]
+    },
+    "copy-object": {
+      "methods": [
+        {
+          "name": "copy-object",
+          "desc": "简单拷贝对象"
+        }
+      ]
+    },
+    "multi-parts-copy-object": {
+      "methods": [
+        {
+          "name": "init-multi-upload",
+          "desc": "初始化分片上传"
+        },
+        {
+          "name": "upload-part-copy",
+          "desc": "拷贝一个分片"
+        },
+        {
+          "name": "complete-multi-upload",
+          "desc": "完成分片拷贝任务"
+        }
+      ]
+    },
+    "transfer-object": {
+      "methods": [
+        {
+          "name": "transfer-upload-object",
+          "desc": "高级接口上传对象"
+        },
+        {
+          "name": "transfer-download-object",
+          "desc": "高级接口下载对象"
+        },
+        {
+          "name": "transfer-copy-object",
+          "desc": "高级接口拷贝对象"
+        },
+        {
+          "name": "batch-upload-objects",
+          "desc": "批量上传任务"
+        }
+      ]
+    },
+    "get-service": {
+      "methods": [
+        {
+          "name": "get-service",
+          "desc": "获取存储桶列表"
+        },
+        {
+          "name": "get-regional-service",
+          "desc": "获取地域的存储桶列表"
+        },
+        {
+          "name": "get-authorization",
+          "desc": "计算签名"
+        }
+      ]
+    }
   }
 }

@@ -190,7 +190,6 @@ const injectCodeSnippet2Doc = async function (doc, getSnippetContent) {
   // })
 }
 
-// 辅助方法：在文档插入注释
 const namesMapping = {
   "GET Bucket（List Object）": "get-bucket",
   "GET Bucket Object Versions": "list-object-versioning",
@@ -237,6 +236,7 @@ const namesMapping = {
   "GET Bucket acl": "get-bucket-acl"
 }
 
+// 辅助方法：在文档插入注释
 const taggingDoc = async function (doc) {
   const tempDoc = doc + '.temp'
   const readInterface = readline.createInterface({
@@ -356,11 +356,6 @@ const getSnippetsFromDoc = async function (doc) {
       resolve(snippets)
     })
   })
-}
-
-const snakeSymbol = function (line) {
-  const matcher = line.trim().match(".>>({{.+}})<<.")
-  return matcher ? line.replace(matcher[0], matcher[1]) : line;
 }
 
 const parseCodeBlockBackticksInDoc = function (line) {

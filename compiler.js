@@ -75,24 +75,30 @@ const extractAll = async function (sdkDocSetRoot, config, destination, template)
   // 记录模版对应的代码缩进值
   const indentation = util.getSnippetIndentation(templateContent)
 
+  // set comment delimiter
+  parser.setCommentDelimiter(config.commentDelimiter)
+
   for (var groupName in config.groups) {
     const group = config.groups[groupName]
-    const pipeline = {
-      name: groupName
-    }
-    if (Array.isArray(group)) {
-      // 方法列表
-      const gs = []
-      for (var i in group) {
-        if (snippetNameDic.hasOwnProperty(group[i])) {
-          gs.push(snippetNameDic[group[i]])
-        }
+    const methods = group.methods
+
+    // 方法列表
+    const filterM = []
+    for (var i in methods) {
+      const m = methods[i]
+      if (snippetNameDic.hasOwnProperty(m.name)) {
+        filterM.push(Object.assign({
+          snippet: snippetNameDic[m.name]
+        }, m))
+      } else {
+        console.warn('Warn: Not found snippet for', m.name)
       }
-      pipeline[groupName] = gs
-    } else {
-      pipeline[groupName] = [snippetNameDic[group]]
     }
 
+    const pipeline = {
+      name: groupName,
+      methods: filterM
+    }
     // 生成示例文件
     extractExample(pipeline, {
       template: templateContent,
@@ -112,46 +118,41 @@ const extractAll = async function (sdkDocSetRoot, config, destination, template)
 const extractExample = function (pipeline, option) {
   const className = util.getNameByConvension(pipeline.name, option.classNamingConvention)
 
-  const caseName = pipeline.name
-  delete pipeline.name
-
   const values = {
     name: className,
     methods: []
   }
 
-  for (let key in pipeline) {
-    if (pipeline.hasOwnProperty(key)) {
-      const gs = pipeline[key]
-      if (Array.isArray(gs)) {
-        for (let i in gs) {
-          const snippet = gs[i]
-          const name = snippet.name
-          const methodObj = {
-            name: util.getNameByConvension(name, option.methodNamingConvention)
-          }
-          methodObj.snippet = pretty.prettyCodeBlock(snippet.bodyBlock, option.indentation)
-          values.methods.push(methodObj)
-        }
-      }
-    }
+  for (var i in pipeline.methods) {
+    const method = pipeline.methods[i]
+    const snippet = method.snippet
+    const name = method.name
+
+    values.methods.push({
+      name: util.getNameByConvension(name, option.methodNamingConvention),
+      description: method.desc,
+      startTag: parser.getSnippetBodyCommentStart(name),
+      endTag: parser.getSnippetBodyCommentEnd(name),
+      snippet: pretty.prettyCodeBlock(snippet.bodyBlock, option.indentation)
+    })
   }
 
   const code = mustache.render(option.template, values)
 
-  const sourceFileName = util.getNameByConvension(caseName, option.sourceFileNamingConvention)
+  const sourceFileName = util.getNameByConvension(pipeline.name, option.sourceFileNamingConvention)
   const sourceFile = path.join(option.destination, sourceFileName + option.sourceExtension)
   util.saveFile(sourceFile, code)
   
-  console.log('generate souce file :', sourceFile)
+  console.log('Generate source file:', sourceFile)
 }
 
 module.exports = {
   build
 }
 
-const docsetRoot = "/Users/laiwenjie/workspace/qcloud-documents/product/存储与CDN/对象存储\ 4.0/SDK文档/Android\ SDK"
+const docsetRoot = "/Users/wjielai/Workspace/cssg-cases/docRepo/product/存储与CDN/对象存储\ 4.0/SDK文档/Android\ SDK"
 const lang = "android"
-const template = "/Users/laiwenjie/workspace/cssg-cases/Android/TestCase.t"
+const template = "/Users/wjielai/Workspace/cssg-cases/Android/Example.t"
+const destination = "/Users/wjielai/Workspace/cssg-cases/Android/project/app/src/androidTest/java/com/tencent/qcloud/cosxml/cssg/"
 
-build(docsetRoot, path.join(process.cwd(), "example"), lang, template)
+build(docsetRoot, destination, lang, template)
