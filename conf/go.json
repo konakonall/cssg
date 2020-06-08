@@ -1,0 +1,5 @@
+{
+  "sourceExtension": ".go",
+  "sourceFileNamingConvention": "under-score",
+  "methodNamingConvention": "upper-camel"
+}

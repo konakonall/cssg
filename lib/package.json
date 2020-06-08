@@ -9,7 +9,8 @@
     "fs-extra": "^8.1.0",
     "mustache": "^3.1.0",
     "simple-git": "^1.126.0",
-    "yargs": "^15.0.2"
+    "yargs": "^15.0.2",
+    "ncp": "^2.0.0"
   },
   "bin": {
     "cssg": "./cli.js",

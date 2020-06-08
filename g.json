@@ -6,44 +6,6 @@
   "methodNamingConvention": "lower-camel",
   "classNamingConvention": "upper-camel",
 
-  "langs": {
-    "android": {
-      "sourceExtension": ".java"
-    },
-    "objc": {
-      "snippetNameCommonPrefix": "objc-",
-      "sourceExtension": ".m"
-    },
-    "swift": {
-      "snippetNameCommonPrefix": "swift-",
-      "sourceExtension": ".swift"
-    },
-    "java": {
-      "sourceExtension": ".java"
-    },
-    "go": {
-      "sourceExtension": ".go",
-      "sourceFileNamingConvention": "under-score",
-      "methodNamingConvention": "upper-camel"
-    },
-    "dotnet": {
-      "sourceExtension": ".cs"
-    },
-    "node": {
-      "sourceExtension": ".js"
-    },
-    "js": {
-      "sourceExtension": ".js"
-    },
-    "php": {
-      "sourceExtension": ".php"
-    },
-    "python": {
-      "commentDelimiter": ["#", ""],
-      "sourceExtension": ".py"
-    }
-  },
-
   "macro4example": {
     "secretId": "COS_SECRETID",
     "secretKey": "COS_SECRETKEY",
