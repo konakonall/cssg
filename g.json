@@ -37,6 +37,10 @@
         {
           "name": "put-bucket",
           "desc": "创建存储桶"
+        },
+        {
+          "name": "put-bucket-and-grant-acl",
+          "desc": "创建存储桶并且授予存储桶权限"
         }
       ]
     },
@@ -56,14 +60,29 @@
         }
       ]
     },
-    "list-Objects": {
+    "list-objects": {
       "methods": [
         {
           "name": "get-bucket",
           "desc": "获取对象列表"
         }, {
-          "name": "list-object-versioning",
-          "desc": "获取对象多版本列表"
+          "name": "get-bucket-next-page",
+          "desc": "获取第二页对象列表"
+        }, {
+          "name": "get-bucket-with-delimiter",
+          "desc": "获取对象列表与子目录"
+        }
+      ]
+    },
+    "list-objects-versioning": {
+      "methods": [
+        {
+          "name": "list-objects-versioning",
+          "desc": "获取对象多版本列表第一页数据"
+        },
+        {
+          "name": "list-objects-versioning-next-page",
+          "desc": "获取对象多版本列表下一页数据"
         }
       ]
     },
@@ -142,7 +161,7 @@
       "methods": [
         {
           "name": "put-bucket-versioning",
-          "desc": "开启存储桶多版本"
+          "desc": "设置存储桶多版本"
         }, {
           "name": "get-bucket-versioning",
           "desc": "获取存储桶多版本状态"
