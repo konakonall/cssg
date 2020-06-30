@@ -372,8 +372,16 @@
     "transfer-object": {
       "methods": [
         {
-          "name": "transfer-upload-object",
+          "name": "transfer-upload-file",
           "desc": "高级接口上传对象"
+        },
+        {
+          "name": "transfer-upload-bytes",
+          "desc": "高级接口上传字节数组"
+        },
+        {
+          "name": "transfer-upload-stream",
+          "desc": "高级接口流式上传"
         },
         {
           "name": "transfer-download-object",

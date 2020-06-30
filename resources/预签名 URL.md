@@ -3,7 +3,7 @@
 
 ## API 参考
 
-SDK 所有接口的具体参数与方法说明，请参考 [SDK API参考](cssg://api-doc)。
+SDK 所有接口的具体参数与方法说明，请参考 [SDK API 参考](cssg://api-doc)。
 
 ## 获取预签名 URL 请求示例
 
