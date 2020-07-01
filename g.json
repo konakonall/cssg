@@ -309,6 +309,20 @@
         }
       ]
     },
+    "object-tagging": {
+      "methods": [
+        {
+          "name": "put-object-tagging",
+          "desc": "设置对象标签"
+        }, {
+          "name": "get-object-tagging",
+          "desc": "获取对象标签"
+        }, {
+          "name": "delete-object-tagging",
+          "desc": "删除对象标签"
+        }
+      ]
+    },
     "multi-parts-upload-object": {
       "methods": [
         {
