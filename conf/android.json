@@ -1,6 +1,5 @@
 {
-  "sourceExtension": ".java",
   "repoUrl": "https://github.com/tencentyun/qcloud-sdk-android",
-  "caseRelativePath": "Demo/app/src/androidTest/java/com/tencent/qcloud/cosxml/cssg/",
+  "projRoot": "Demo/",
   "apiDocURL": "https://cos-android-sdk-doc-1253960454.cos-website.ap-shanghai.myqcloud.com/"
 }
