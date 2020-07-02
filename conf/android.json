@@ -1,5 +1,6 @@
 {
   "repoUrl": "https://github.com/tencentyun/qcloud-sdk-android",
   "projRoot": "Demo/",
-  "apiDocURL": "https://cos-android-sdk-doc-1253960454.cos-website.ap-shanghai.myqcloud.com/"
+  "apiDocURL": "https://cos-android-sdk-doc-1253960454.cos-website.ap-shanghai.myqcloud.com/",
+  "documentRelativePath": "product/存储与CDN/对象存储 4.0/SDK文档/Android SDK/"
 }
