@@ -1,4 +1,7 @@
 {
-  "snippetNameCommonPrefix": "swift-",
-  "sourceExtension": ".swift"
+  "repoUrl": "https://github.com/tencentyun/qcloud-sdk-ios-samples",
+  "projRoot": "COSAPIDemo/Swift",
+  "snippetLabel": "swift",
+  "apiDocURL": "",
+  "documentRelativePath": "product/存储与CDN/对象存储 4.0/SDK文档/iOS SDK/"
 }
