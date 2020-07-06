@@ -363,7 +363,23 @@
       "methods": [
         {
           "name": "copy-object",
-          "desc": "简单拷贝对象"
+          "desc": "复制对象时保留对象属性"
+        },
+        {
+          "name": "copy-object-replaced",
+          "desc": "复制对象时替换对象属性"
+        }
+      ]
+    },
+    "modify-object-property": {
+      "methods": [
+        {
+          "name": "modify-object-metadata",
+          "desc": "修改对象元数据"
+        },
+        {
+          "name": "modify-object-storage-class",
+          "desc": "修改对象存储类型"
         }
       ]
     },
