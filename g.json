@@ -407,7 +407,7 @@
         },
         {
           "name": "transfer-upload-bytes",
-          "desc": "高级接口上传字节数组"
+          "desc": "高级接口上传二进制数据"
         },
         {
           "name": "transfer-upload-stream",

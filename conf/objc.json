@@ -2,6 +2,6 @@
   "repoUrl": "https://github.com/tencentyun/qcloud-sdk-ios-samples",
   "projRoot": "COSAPIDemo/Objc",
   "snippetLabel": "objC",
-  "apiDocURL": "",
+  "apiDocURL": "https://cos-ios-sdk-doc-1253960454.file.myqcloud.com/",
   "documentRelativePath": "product/存储与CDN/对象存储 4.0/SDK文档/iOS SDK/"
 }
