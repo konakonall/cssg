@@ -5,9 +5,9 @@
 
 SDK 所有接口的具体参数与方法说明，请参考 [SDK API 参考](cssg://api-doc)。
 
-## 获取预签名 URL 请求示例
+## 获取预签名 URL
 
-#### 获取预签名上传 URL 请求示例
+#### 示例代码${i}：获取预签名上传 URL
 
 [//]: # (.cssg-snippet-get-presign-upload-url)
 ```
@@ -15,7 +15,7 @@ SDK 所有接口的具体参数与方法说明，请参考 [SDK API 参考](cssg
 
 >?更多完整示例，请前往 [GitHub](cssg://code-example/get-presign-upload-url) 查看。
 
-#### 获取预签名下载 URL 请求示例
+#### 示例代码${i}：获取预签名下载 URL
 
 [//]: # (.cssg-snippet-get-presign-download-url)
 ```
