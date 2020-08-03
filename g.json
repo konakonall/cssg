@@ -399,7 +399,7 @@
         }
       ]
     },
-    "transfer-object": {
+    "transfer-upload-object": {
       "methods": [
         {
           "name": "transfer-upload-file",
@@ -414,16 +414,56 @@
           "desc": "高级接口流式上传"
         },
         {
+          "name": "transfer-upload-uri",
+          "desc": "高级接口 URI 上传"
+        },
+        {
+          "name": "transfer-upload-pause",
+          "desc": "上传暂停"
+        },
+        {
+          "name": "transfer-upload-resume",
+          "desc": "上传续传"
+        },
+        {
+          "name": "transfer-upload-cancel",
+          "desc": "上传取消"
+        },
+        {
+          "name": "transfer-batch-upload-objects",
+          "desc": "批量上传"
+        }
+      ]
+    },
+    "transfer-download-object": {
+      "methods": [
+        {
           "name": "transfer-download-object",
           "desc": "高级接口下载对象"
         },
         {
-          "name": "transfer-copy-object",
-          "desc": "高级接口拷贝对象"
+          "name": "transfer-download-object-pause",
+          "desc": "下载暂停"
         },
         {
-          "name": "batch-upload-objects",
-          "desc": "批量上传任务"
+          "name": "transfer-download-object-resume",
+          "desc": "下载续传"
+        },
+        {
+          "name": "transfer-download-object-cancel",
+          "desc": "下载取消"
+        },
+        {
+          "name": "transfer-batch-download-objects",
+          "desc": "批量下载"
+        }
+      ]
+    },
+    "transfer-copy-object": {
+      "methods": [
+        {
+          "name": "transfer-copy-object",
+          "desc": "高级接口拷贝对象"
         }
       ]
     },
@@ -440,6 +480,54 @@
         {
           "name": "get-authorization",
           "desc": "计算签名"
+        }
+      ]
+    },
+    "set-custom-headers": {
+      "methods": [
+        {
+          "name": "set-custom-headers",
+          "desc": "设置自定义头部"
+        }
+      ]
+    },
+    "put-object-SSE": {
+      "methods": [
+        {
+          "name": "put-object-sse",
+          "desc": "使用 COS 托管加密密钥的服务端加密（SSE-COS）保护数据"
+        },
+        {
+          "name": "put-object-sse-c",
+          "desc": "使用客户提供的加密密钥的服务端加密 （SSE-C）保护数据"
+        }
+      ]
+    },
+    "set-custom-domain": {
+      "methods": [
+        {
+          "name": "set-cdn-domain",
+          "desc": "设置默认加速域名"
+        },
+        {
+          "name": "set-cdn-custom-domain",
+          "desc": "设置自定义加速域名"
+        },
+        {
+          "name": "set-custom-domain",
+          "desc": "设置自定义域名"
+        },
+        {
+          "name": "set-accelerate-domain",
+          "desc": "设置全球加速域名"
+        }
+      ]
+    },
+    "picture-operation": {
+      "methods": [
+        {
+          "name": "upload-with-pic-operation",
+          "desc": "上传时图片处理"
         }
       ]
     }
