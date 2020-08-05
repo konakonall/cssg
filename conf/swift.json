@@ -1,8 +1,8 @@
 {
-  "repoUrl": "https://github.com/tencentyun/qcloud-sdk-ios-samples",
-  "projRoot": "COSAPIDemo/Swift",
+  "projRoot": "iOS/Swift",
   "snippetLabel": "swift",
   "titleLabel": "Swift",
   "apiDocURL": "https://cos-ios-sdk-doc-1253960454.file.myqcloud.com/",
-  "documentRelativePath": "product/存储与CDN/对象存储 4.0/SDK文档/iOS SDK/"
+  "documentRelativePath": "product/存储与CDN/对象存储 4.0/SDK文档/iOS SDK/",
+  "templatify": true
 }

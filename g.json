@@ -1,6 +1,8 @@
 {
   "docExtension": ".md",
 
+  "snippetRepoUrl": "https://github.com/tencentyun/cos-snippets",
+
   "commentDelimiter": ["//", ""],
   "sourceFileNamingConvention": "upper-camel",
   "methodNamingConvention": "lower-camel",
@@ -157,7 +159,7 @@
         }
       ]
     },
-    "bucket--versioning": {
+    "bucket-versioning": {
       "methods": [
         {
           "name": "put-bucket-versioning",
@@ -197,10 +199,10 @@
       "methods": [
         {
           "name": "put-bucket-domain",
-          "desc": "设置存储桶源站"
+          "desc": "设置存储桶自定义域名"
         }, {
           "name": "get-bucket-domain",
-          "desc": "获取存储桶源站"
+          "desc": "获取存储桶自定义域名"
         }
       ]
     },
@@ -238,6 +240,10 @@
         {
           "name": "put-object",
           "desc": "简单上传对象"
+        },
+        {
+          "name": "put-object-bytes",
+          "desc": "简单上传内存数据"
         }
       ]
     },
@@ -306,20 +312,6 @@
         {
           "name": "get-object-acl",
           "desc": "获取对象 ACL"
-        }
-      ]
-    },
-    "object-tagging": {
-      "methods": [
-        {
-          "name": "put-object-tagging",
-          "desc": "设置对象标签"
-        }, {
-          "name": "get-object-tagging",
-          "desc": "获取对象标签"
-        }, {
-          "name": "delete-object-tagging",
-          "desc": "删除对象标签"
         }
       ]
     },

@@ -1,3 +1,7 @@
 {
-  "sourceExtension": ".cs"
+  "projRoot": "dotnet/",
+  "snippetLabel": "cs",
+  "apiDocURL": "https://cos-dotnet-sdk-doc-1253960454.file.myqcloud.com/",
+  "documentRelativePath": "product/存储与CDN/对象存储 4.0/SDK文档/.Net SDK/",
+  "templatify": true
 }
