@@ -1,3 +1,5 @@
 {
-  "sourceExtension": ".java"
+  "projRoot": "Java/",
+  "snippetLabel": "java",
+  "documentRelativePath": "product/存储与CDN/对象存储 4.0/SDK文档/Java SDK/"
 }

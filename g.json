@@ -229,6 +229,9 @@
           "name": "get-bucket-inventory",
           "desc": "获取存储桶清单任务"
         }, {
+          "name": "list-bucket-inventory",
+          "desc": "列出所有存储桶清单任务"
+        }, {
           "name": "delete-bucket-inventory",
           "desc": "删除存储桶清单任务"
         }
@@ -240,10 +243,6 @@
         {
           "name": "put-object",
           "desc": "简单上传对象"
-        },
-        {
-          "name": "put-object-bytes",
-          "desc": "简单上传内存数据"
         }
       ]
     },
@@ -468,7 +467,11 @@
         {
           "name": "get-regional-service",
           "desc": "获取地域的存储桶列表"
-        },
+        }
+      ]
+    },
+    "get-authorization": {
+      "methods": [
         {
           "name": "get-authorization",
           "desc": "计算签名"
@@ -492,6 +495,18 @@
         {
           "name": "put-object-sse-c",
           "desc": "使用客户提供的加密密钥的服务端加密 （SSE-C）保护数据"
+        }
+      ]
+    },
+    "put-object-CSE": {
+      "methods": [
+        {
+          "name": "put-object-cse-c-aes",
+          "desc": "使用 AES256 进行客户端加密"
+        },
+        {
+          "name": "put-object-cse-c-rsa",
+          "desc": "使用 RSA 进行客户端加密"
         }
       ]
     },
