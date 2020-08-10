@@ -302,6 +302,14 @@
         }
       ]
     },
+    "select-object": {
+      "methods": [
+        {
+          "name": "select-object",
+          "desc": "检索对象内容"
+        }
+      ]
+    },
     "object-ACL": {
       "methods": [
         {
@@ -423,6 +431,14 @@
         {
           "name": "transfer-batch-upload-objects",
           "desc": "批量上传"
+        },
+        {
+          "name": "upload-object-traffic-limit",
+          "desc": "上传时对单链接限速"
+        },
+        {
+          "name": "create-directory",
+          "desc": "创建目录"
         }
       ]
     },
@@ -447,6 +463,10 @@
         {
           "name": "transfer-batch-download-objects",
           "desc": "批量下载"
+        },
+        {
+          "name": "download-object-traffic-limit",
+          "desc": "下载时对单链接限速"
         }
       ]
     },
@@ -493,6 +513,10 @@
           "desc": "使用 COS 托管加密密钥的服务端加密（SSE-COS）保护数据"
         },
         {
+          "name": "put-object-sse-kms",
+          "desc": "使用 KMS 托管加密密钥的服务端加密（SSE-KMS）保护数据"
+        },
+        {
           "name": "put-object-sse-c",
           "desc": "使用客户提供的加密密钥的服务端加密 （SSE-C）保护数据"
         }
@@ -535,6 +559,22 @@
         {
           "name": "upload-with-pic-operation",
           "desc": "上传时图片处理"
+        },
+        {
+          "name": "process-with-pic-operation",
+          "desc": "对云上数据进行图片处理"
+        },
+        {
+          "name": "put-object-with-watermark",
+          "desc": "上传时添加盲水印"
+        },
+        {
+          "name": "download-object-with-watermark",
+          "desc": "下载时添加盲水印"
+        },
+        {
+          "name": "sensitive-content-recognition",
+          "desc": "图片审核"
         }
       ]
     }
