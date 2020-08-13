@@ -203,6 +203,9 @@
         }, {
           "name": "get-bucket-domain",
           "desc": "获取存储桶自定义域名"
+        }, {
+          "name": "delete-bucket-domain",
+          "desc": "删除存储桶自定义域名"
         }
       ]
     },

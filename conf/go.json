@@ -1,5 +1,5 @@
 {
-  "sourceExtension": ".go",
-  "sourceFileNamingConvention": "under-score",
-  "methodNamingConvention": "upper-camel"
+  "projRoot": "Go/",
+  "snippetLabel": "go",
+  "documentRelativePath": "product/存储与CDN/对象存储 4.0/SDK文档/Go SDK/"
 }

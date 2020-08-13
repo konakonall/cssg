@@ -1,3 +1,5 @@
 {
-  "sourceExtension": ".php"
+  "projRoot": "php/",
+  "snippetLabel": "php",
+  "documentRelativePath": "product/存储与CDN/对象存储 4.0/SDK文档/PHP SDK/"
 }
