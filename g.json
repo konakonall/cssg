@@ -286,6 +286,10 @@
         {
           "name": "delete-multi-object",
           "desc": "删除多个对象"
+        },
+        {
+          "name": "delete-prefix",
+          "desc": "指定前缀批量删除对象"
         }
       ]
     },
@@ -370,6 +374,14 @@
         {
           "name": "copy-object-replaced",
           "desc": "复制对象时替换对象属性"
+        }
+      ]
+    },
+    "move-object": {
+      "methods": [
+        {
+          "name": "move-object",
+          "desc": "移动对象"
         }
       ]
     },
@@ -566,6 +578,10 @@
         {
           "name": "process-with-pic-operation",
           "desc": "对云上数据进行图片处理"
+        },
+        {
+          "name": "download-with-pic-operation",
+          "desc": "下载时进行图片处理"
         },
         {
           "name": "put-object-with-watermark",
