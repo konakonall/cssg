@@ -476,6 +476,10 @@
           "desc": "下载取消"
         },
         {
+          "name": "transfer-download-resumable",
+          "desc": "设置支持断点下载"
+        },
+        {
           "name": "transfer-batch-download-objects",
           "desc": "批量下载"
         },
@@ -594,6 +598,34 @@
         {
           "name": "sensitive-content-recognition",
           "desc": "图片审核"
+        }
+      ]
+    },
+    "qrcode-recognition": {
+      "methods": [
+        {
+          "name": "upload-with-QRcode-recognition",
+          "desc": "上传时进行二维码识别"
+        },
+        {
+          "name": "download-with-qrcode-recognition",
+          "desc": "下载时进行二维码识别"
+        }
+      ]
+    },
+    "document-preview": {
+      "methods": [
+        {
+          "name": "document-preview",
+          "desc": "文档预览"
+        }
+      ]
+    },
+    "get-snapshot": {
+      "methods": [
+        {
+          "name": "get-snapshot",
+          "desc": "获取截图"
         }
       ]
     }
